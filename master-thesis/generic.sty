@@ -1,0 +1,172 @@
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}[chapter]
+\newtheorem{ass}[thm]{Assumption}
+\newtheorem{pry}[thm]{Property}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{prop}[thm]{Property}
+\newtheorem{col}[thm]{Corollary}
+\newtheorem{conj}[thm]{Conjecture}
+\theoremstyle{definition}
+\newtheorem{definition}[thm]{Definition}
+\newtheorem{example}[thm]{Example}
+\newtheorem*{varthm}{}
+
+\newenvironment{property}{\begin{prop} \sl}{\end{prop}}
+\newenvironment{lemma}{\begin{lem} \sl}{\end{lem}}
+\newenvironment{theorem}{\begin{thm} \sl}{\end{thm}}
+\newenvironment{corollary}{\begin{col} \sl}{\end{col}}
+
+\newenvironment{proofenv}[1]{\textbf{#1}. \hspace{2mm}}{}
+\renewenvironment{proof}{\emph{Proof.}}{\hfill $\Box$\\}
+\DeclareMathOperator{\mmod}{mod}
+\DeclareMathOperator{\mdiv}{div}
+\DeclareMathOperator{\mmin}{min}
+\DeclareMathOperator{\mmax}{max}
+
+\makeatletter
+\def\equalsfill{$\m@th\mathord=\mkern-7mu
+ \cleaders\hbox{$\!\mathord=\!$}\hfill
+ \mkern-7mu\mathord=$}
+\makeatother
+
+\newenvironment{myalgo}[2]{
+ \begin{algorithm}{#1}[#2]{}
+ \newcommand{\qignore}{\textbf{ignore}}
+ \newcommand{\qreset}{\textbf{reset}}
+ \renewcommand{\qcomment}[1]{$\triangleright$ ##1}
+}{
+ \end{algorithm}
+}
+
+\newcommand{\coord}[1]{\ensuremath{\langle #1 \rangle}}
+\newcommand{\OO}{\mathcal{O}}
+\newcommand{\BB}{\mathds{B}}
+\newcommand{\TTT}{\mathds{T}}
+\newcommand{\mAA}{\mathcal{A}}
+\newcommand{\mNN}{\mathcal{N}}
+\newcommand{\mLL}{\mathcal{L}}
+\newcommand{\mDD}{\mathcal{D}}
+\newcommand{\mFF}{\mathcal{F}}
+\newcommand{\mPP}{\mathcal{P}}
+
+\newcommand{\comm}{~|~}
+\newcommand{\lmerge}{~\llfloor~}
+\newcommand{\before}{\ll}
+\font \aap cmmi10        
+\newcommand{\at}[1]{\mbox{\aap ,} #1}
+
+\DefineVerbatimEnvironment{codeverb}{Verbatim}{frame=lines,numbers=left,firstnumber=last,fontsize=\small,commandchars=@\{\}}
+\newcommand{\TT}{\texttt}
+
+% colors for UPPAAL pictures - we print in black/white unfortunately :-(
+\newcommand{\upSELECT}{black}
+\newcommand{\upUPDATE}{black}
+\newcommand{\upSYNC}{black}
+\newcommand{\upGUARD}{black}
+\newcommand{\upINVARIANT}{black}
+
+\newenvironment{uppaal}[2]{
+\begin{figure}[h]
+ \newcommand{\UPLABEL}{#1}
+ \newcommand{\UPCAPTION}{#2}
+ \centering
+ \begin{tikzpicture}
+  \tikzstyle{state}=[draw,circle,inner sep=5pt,minimum size=15mm,node distance=5cm,font=\Large]
+  \tikzstyle{invstate}=[draw,circle split,inner sep=5pt,minimum size=15mm,node distance=5cm,font=\Large]
+  \tikzstyle{arrow}=[->,shorten <=1pt,>=stealth',semithick]
+ \newcommand{\initialinvstate}[2]{
+  \node (##1) [invstate] {##2};
+  \draw (##1) circle (10mm);
+ }
+}{
+ \end{tikzpicture}
+ \caption{\label{\UPLABEL} \UPCAPTION}
+\end{figure}
+}
+
+\newenvironment{statespace}[2]{
+\begin{figure}[h]
+ \newcommand{\SSLABEL}{#1}
+ \newcommand{\SSCAPTION}{#2}
+ \centering
+ \begin{tikzpicture}
+  \newcommand{\initialstate}[1]{
+   \node (##1) [state,draw=red,fill=gray!30] {0};
+  }
+  \tikzstyle{state}=[draw,circle,inner sep=2pt,minimum size=3mm,node distance=4cm]
+  \tikzstyle{arrow}=[->,shorten <=1pt,>=stealth',semithick]
+}{
+ \end{tikzpicture}
+ \caption{\label{\SSLABEL} \SSCAPTION}
+ \end{figure}
+}
+
+\newcommand{\nodegrid}[4]{
+ % setnode{x}{y}{id}{d0}{d1}{d2}{d3}
+ \renewcommand{\setnode}[7]{
+  \draw                 (0.75+##1*1.5,0.75+##2*1.5) node {##3};
+  \draw [font=\dirsize] (0.25+##1*1.5,0.75+##2*1.5) node {##7};
+  \draw [font=\dirsize] (1.30+##1*1.5,0.75+##2*1.5) node {##5};
+  \draw [font=\dirsize] (0.75+##1*1.5,0.20+##2*1.5) node {##6};
+  \draw [font=\dirsize] (0.75+##1*1.5,1.30+##2*1.5) node {##4};
+ }
+ \draw[step=1.5cm] (#2*1.5,#3*1.5) grid (#2*1.5+1.5*#1,#3*1.5+1.5*#1);
+ \foreach \a/\b/\c/\d/\e/\f/\g in { #4 } \setnode{1.5*#2+\a}{1.5*#3+\b}{\c}{\d}{\e}{\f}{\g};
+}
+
+\newenvironment{nodefigure}{
+ \newcommand{\setnode}{}
+ \newcommand{\dirsize}{\tiny}
+ \centering
+ \begin{tikzpicture}
+}{
+ \end{tikzpicture}
+}
+
+\newenvironment{derivation}[1]{
+\newcommand{\equ}[2]{\> = \{ ##1 \} \\ \> \> ##2 \\ }
+\newcommand{\nxt}[1]{\> \> ##1 \\ }
+\begin{tabbing}
+\= \hspace{7.5mm} \=  #1 \\
+}{
+\end{tabbing}
+}
+
+\newenvironment{lts}[2]{
+\begin{figure}[h]
+ \newcommand{\LTSLABEL}{#1}
+ \newcommand{\LTSCAPTION}{#2}
+ \centering
+ \begin{tikzpicture}
+  \newcommand{\initialstate}[1]{
+   \node (##1) [state] {};
+   \draw [arrow] (##1) + (0,0.5) to (##1);
+  }
+  \tikzstyle{state}=[draw,circle,node distance=25mm]
+  \tikzstyle{arrow}=[->,shorten <=1pt,>=stealth',semithick]
+}{
+ \end{tikzpicture}
+ \caption{\label{\LTSLABEL} \LTSCAPTION}
+ \end{figure}
+}
+
+% from mcrl2-book.tex
+\newcolumntype{L}{>{$}l<{$}}%stopzone%stopzone%stopzone
+\newcommand{\msync}{{\mid}}
+\newcommand{\true}{\ensuremath{\mathit{true}}}
+\newcommand{\false}{\ensuremath{\mathit{false}}}
+\newcommand{\dataless}[1]{\underline{#1}}
+\def\ax{=}
+\newcommand{\ap}{{:}}
+\newcommand{\cmerge}{{\mid}}
+\newcommand{\daz}{\delta\at 0}
+\newcommand{\dataeq}{{\approx}}
+\newcommand{\inmodeq}{\text{~\underline{$\in$\!}~}}
+\newcommand{\ninmodeq}{\text{~\underline{$\not\in$\!}~}}
+
+\newcommand{\encap}[1]{\partial_{#1}}
+\newcommand{\hide}[1]{\tau_{#1}}
+\newcommand{\prehide}[1]{\Upsilon_{#1}}
+\newcommand{\allow}[1]{\nabla_{#1}}
+\newcommand{\COMM}[1]{\Gamma_{#1}}
+\newcommand{\ren}[1]{\rho_{#1}}

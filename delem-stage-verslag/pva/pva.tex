@@ -1,0 +1,106 @@
+\documentclass[a4paper,11pt]{book}
+\usepackage[dutch]{babel}
+\usepackage{textcomp}
+\usepackage{fancyhdr}
+\usepackage{makeidx}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage{pdflscape}
+\usepackage{floatflt}
+\makeindex
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\bfseries\thepage}
+\fancyhead[LO]{\bfseries\rightmark}
+\fancyhead[RE]{\bfseries\leftmark}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\headheight}{0.5pt}
+\fancypagestyle{plain}{%
+	\fancyhead{}
+	\renewcommand{\headrulewidth}{0pt}
+}
+\usepackage[pdfauthor={Rink Springer}
+pdftitle={Plan van Aanpak}
+pdftex]{hyperref}
+%\hypersetup{colorlinks,citecolor=black,filecolor=black,linkcolor=black,urlcolor=black,pdftex}
+\hyphenation{be-lang-rijk ont-wik-ke-laars me-taal-be-wer-king func-ti-o-na-li-teit}
+\newcommand{\commsection}[1]{\subsection*{#1}}
+\newcommand{\commsubsection}[1]{\subsubsection*{#1}}
+
+% definities
+\author{Rink Springer}
+\title{Plan van Aanpak}
+
+\begin{document}
+
+\frontmatter
+
+% titel pagina
+\begin{titlepage}
+\hrule
+\vspace*{\fill}
+\begin{center}
+{\Huge Plan van Aanpak} \\
+\vspace{2cm}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[height=2cm]{delem_logo.jpg}
+\end{center}
+\end{figure}
+HSB-Bus-Analyser\\
+\vspace{2cm}
+{\large Rink Springer}\\
+\vspace{2cm}
+Versie 1.31\\
+\today\\
+\vspace{2cm}
+\end{center}
+\vspace*{\fill}
+\hrule
+\end{titlepage}
+
+% voorwoord
+\input{voorwoord}
+
+\tableofcontents
+
+% samenvatting
+\input{samenvatting}
+
+% verklarende woordenlijst
+\input{woordenlijst}
+
+\mainmatter
+
+% 1. inleiding
+\input{inleiding}
+
+% 2. bedrijf
+\input{bedrijf}
+
+% 3. achtergrondinformatie
+\input{achtergrond}
+
+% 4. project
+\input{project}
+
+% 5. planning
+\input{planning}
+
+% 6. beheersaspecten
+\input{beheersaspecten}
+
+% 7. conclusie / aanbevelingen
+\input{conclusie}
+
+% communicatieplan
+\appendix
+\input{commplan}
+
+% index
+\backmatter
+\printindex
+
+\end{document}

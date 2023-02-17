@@ -1,0 +1,129 @@
+\documentclass[a4paper,11pt]{book}
+\bibliographystyle{plain}
+\usepackage[english]{babel}
+\usepackage{textcomp}
+\usepackage{fancyhdr}
+\usepackage{makeidx}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage{pdflscape}
+\usepackage{floatflt}
+\usepackage{pdfpages}
+\makeindex
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\bfseries\thepage}
+\fancyhead[LO]{\bfseries\rightmark}
+\fancyhead[RE]{\bfseries\leftmark}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\headheight}{0.5pt}
+\fancypagestyle{plain}{%
+	\fancyhead{}
+	\renewcommand{\headrulewidth}{0pt}
+}
+\usepackage[pdftex,pdfstartview=FitV]{hyperref}
+\hypersetup{%
+	pdftitle={Graduation Report: LIMEFS Realtime File System},%
+	pdfauthor={Rink Springer},
+	pdfkeywords={LIMEFS Filesystem Realtime Linux}
+}
+\usepackage[T1]{fontenc}
+\usepackage[latin1]{inputenc}
+\hyphenation{}
+
+% shortcut, used to define indexes words
+\newcommand{\wi}[1]{\index{{#1}}{#1}}
+
+% definities
+\author{Rink Springer}
+\title{Graduation Report: LIMFS Realtime File System}
+
+\begin{document}
+
+\frontmatter
+
+% titel pagina
+\begin{titlepage}
+\hrule
+\vspace*{\fill}
+\begin{center}
+\vspace{1cm}
+{\Huge Graduation Report} \\
+\vspace{1cm}
+{\Large Time is of the Essence} \\
+Implementation of the LIMEFS Realtime Linux Filesystem\\
+\vspace{1cm}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[height=4cm]{lime-color} \\
+\end{center}
+\end{figure}
+\vspace{1cm}
+{\large Rink Springer}\\
+\vspace{1.5cm}
+Revision 1.1\\
+2nd June 2005\\
+\vspace{5mm}
+\includegraphics[height=3.5cm]{philips-kleur}
+\vspace{2cm}
+\end{center}
+\vspace*{\fill}
+\hrule
+\end{titlepage}
+
+% hi title page
+\input{hi_voorblad}
+
+% preface
+\input{preface}
+
+\tableofcontents
+
+% summary
+\input{summary}
+
+% samenvatting
+\input{samenvatting}
+
+% definitions and abbreviations
+\input{defs}
+
+\mainmatter
+
+% 1. introduction
+\input{intro}
+
+% 2. project
+\input{project}
+
+% 3. evaluation
+\input{evaluation}
+
+% 4. personal eva
+\input{personal}
+
+% 5. conclusion
+\input{conclusion}
+
+% bibliography
+\bibliography{bib}
+
+% appendixes
+\appendix
+\chapter{Technical Report}
+
+\includepdf[pages=-]{incl/techreport.pdf}
+%Absent.
+
+\chapter{Plan van Aanpak}
+
+\includepdf[pages=-]{incl/pva.pdf}
+%Absent.
+
+% index
+\backmatter
+\printindex
+
+\end{document}

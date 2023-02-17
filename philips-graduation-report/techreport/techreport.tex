@@ -1,0 +1,126 @@
+\documentclass[a4paper,11pt]{book}
+\bibliographystyle{plain}
+\usepackage[english]{babel}
+\usepackage{textcomp}
+\usepackage{fancyhdr}
+\usepackage{makeidx}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage{pdflscape}
+\usepackage{floatflt}
+\usepackage{ifthen}
+\usepackage{background}
+\makeindex
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\bfseries\thepage}
+\fancyhead[LO]{\bfseries\rightmark}
+\fancyhead[RE]{\bfseries\leftmark}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\headheight}{0.5pt}
+\fancypagestyle{plain}{%
+	\fancyhead{}
+	\renewcommand{\headrulewidth}{0pt}
+}
+\usepackage[pdftex,pdfstartview=FitV]{hyperref}
+\hypersetup{%
+	pdftitle={Technical Report: LIMEFS Realtime File System},%
+	pdfauthor={Rink Springer},
+	pdfkeywords={LIMEFS Filesystem Realtime Linux}
+}
+\usepackage{draftcopy}
+\usepackage[T1]{fontenc}
+\usepackage[latin1]{inputenc}
+\hyphenation{}
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{5}
+
+% shortcut, used to define indexes words
+\newcommand{\wi}[1]{\index{{#1}}{#1}}
+
+% stand{on,off} is used to create a piece of text that 'stand out' of the
+% current context
+\newcommand{\standon}[2]{
+	\vspace{5mm}
+	\hrule
+	\begin{sffamily}
+	\textbf{\index{{#2}}{#1}}
+}
+\newcommand{\standoff}[0]{
+	\end{sffamily}
+	\vspace{5mm}
+	\hrule
+	\vspace{5mm}
+}
+
+% definities
+\author{Rink Springer}
+\title{Technical Report: LIMEFS Realtime File System}
+
+\begin{document}
+
+\frontmatter
+
+% titel pagina
+\begin{titlepage}
+\hrule
+\vspace*{\fill}
+\begin{center}
+{\Huge Technical Report} \\
+\vspace{2cm}
+\begin{figure}[htb]
+\begin{center}
+%\includegraphics[height=2cm]{delem_logo.jpg}
+\end{center}
+\end{figure}
+LIMEFS Realtime File System\\
+\vspace{2cm}
+{\large Rink Springer}\\
+\vspace{2cm}
+Revision 1.1\\
+\today\\
+\vspace{2cm}
+\end{center}
+\vspace*{\fill}
+\hrule
+\end{titlepage}
+
+% preface
+\input{preface}
+
+\tableofcontents
+\listoffigures
+
+% summary
+\input{summary}
+
+% definitions and abbreviations
+\input{defs}
+
+\mainmatter
+
+% 1. introduction
+\input{intro}
+
+% 2. I/O layer overview
+\input{io}
+
+% 3. limefs
+\input{limefs}
+
+% 4. implementation
+\input{impl}
+
+% 5. conclusion
+\input{concl}
+
+% bibliography
+\bibliography{bib}
+
+% index
+\backmatter
+\printindex
+
+\end{document}

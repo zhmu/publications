@@ -1,0 +1,84 @@
+\documentclass{book}
+\usepackage{a4wide,amsthm,parskip,graphicx,amsfonts,algo,gensymb,tabularx,fancyvrb,tikz,amsmath,generic,stmaryrd,dsfont,pgf-umlsd,floatflt,fancyhdr,comment}
+\usepackage[pdftex,pdfstartview=FitV]{hyperref}
+\usepackage[english]{babel}
+\usetikzlibrary{arrows}
+\usetikzlibrary{shapes.multipart}
+\hypersetup{
+        pdftitle={Design and verification of the SmartPixel II protocol},
+        pdfauthor={Rink Springer},
+        pdfkeywords={smartpixel mcrl2}
+}
+
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\bfseries\thepage}
+\fancyhead[LO]{\bfseries\rightmark}
+\fancyhead[RE]{\bfseries\leftmark}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\headheight}{0.5pt}
+\fancypagestyle{plain}{%
+        \fancyhead{}
+        \renewcommand{\headrulewidth}{0pt}
+}
+
+\title{Design and verification of the SmartPixel II protocol}
+\author{Rink Springer}
+
+\begin{document}
+
+\begin{titlepage}
+\hfill Eindhoven, \today
+\null\vfill
+\vspace{20mm}
+\begin{center}\Large
+\hspace{2cm}Design and verification \par
+\hspace{2cm} of the \par
+\hspace{2cm}SmartPixel II protocol\vskip1cm
+\hspace{2cm}\normalsize by \par \hspace{2cm}Rink P. W. Springer
+\vskip3cm
+\hspace{2cm}in partial fulfillment of the requirements for the degree of\par
+\vskip5mm
+\hspace{2cm}\textbf{Master of Science}\par
+\hspace{2cm}\textbf{in Computer Science and Engineering}
+\vskip3cm
+\end{center}\vfill
+Supervisor:\\
+M. A. Reniers, TU/e department of Mathematics and Computer Science\\
+W. Hendriksen, Devlab \\
+\end{titlepage}
+
+\frontmatter
+
+\input{preface}
+\input{acknowledgements}
+\input{abstract}
+
+\tableofcontents
+
+\mainmatter
+
+\input{intro}
+\input{overview}
+\input{introtheory}
+\input{operation}
+\input{generalnotes}
+\input{leaderelection}
+\input{nodecoords}
+\input{gridsize}
+\input{showtime}
+\input{complete}
+\input{timed}
+\input{closing}
+
+\appendix
+\input{proofs}
+\input{axioms}
+\input{source}
+
+\bibliographystyle{alpha}
+\bibliography{bib}
+
+\end{document}

@@ -1,0 +1,19 @@
+\begin{thebibliography}{1}
+
+\bibitem{ABISS}
+Werner Almesberger and Benno van~den Brink.
+\newblock Active block i/o scheduling system.
+\newblock Website, 2004.
+\newblock \url{http://abiss.sourceforge.net/doc/abiss-lk.ps}.
+
+\bibitem{ROR}
+Wim Hoogland.
+\newblock {\em {Rapport over Rapporteren}}.
+\newblock Wolters-Noordhoff, 1998.
+
+\bibitem{TDaIotFOS}
+Marshall~Kirk McKusick and George~V. Neville-Neil.
+\newblock {\em The Design and Implementation of the FreeBSD Operating System}.
+\newblock Addison-Wesley, 2005.
+
+\end{thebibliography}

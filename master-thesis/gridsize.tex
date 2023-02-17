@@ -1,0 +1,174 @@
+\chapter{Grid size determination}
+
+\section{The model}
+\label{model:gridsize}
+
+In order to check whether the algorithm determines the correct grid size, we need to introduce two functions: $makeMinCoords$ and $makeMaxCoords$ which determine the corresponding minimum and maximum coordinates of a $\mDD \times \mDD$ grid with leader number $\mLL$. Let us consider Figure \ref{fig:sizegrid}: we observe the minimum position is the bottom-left coordinate, \coord{-2,-1}, whereas the maximum position is the top-right coordinate, \coord{0,1}. The question is: how can we determine the minimum and maximum positions if we only know the grid dimensions and the leader node number? If we study the figure in more detail, we observe that the minimum position consists of the amount of nodes to the bottom-left of the leader node: there are two nodes to the left of the leader node and one node below the leader node, so the minimum position is \coord{-2,-1}. Likewise, the maximum position consists of the number of nodes to the top-right of the leader node: there is one node above the leader node, and zero nodes to the right of the leader node, so the maximum position is \coord{0,1}.
+
+
+\begin{figure}[ht]
+ \centering
+ \begin{tikzpicture}
+ % setnode{x}{y}{id}{pos}
+ \newcommand{\setnode}[5]{
+  \draw              (0.75+#1*1.5,0.90+#2*1.5) node {#3};
+  \draw              (0.75+#1*1.5,0.50+#2*1.5) node {\coord{#4,#5}};
+ }
+ \draw[step=1.5cm] (3*1.5,3*1.5) grid (3*1.5+1.5*3,3*1.5+1.5*3);
+ \foreach \a/\b/\c/\d/\e in { 0/2/0/-2/ 1,  1/2/1/-1/ 1,  2/2/2/ 0/ 1,
+                              0/1/3/-2/ 0,  1/1/4/-1/ 0,  2/1/5/ 0/ 0,
+                              0/0/6/-2/-1,  1/0/7/-1/-1,  2/0/8/ 0/-1 }
+   \setnode{1.5*3+\a}{1.5*3+\b}{\c}{\d}{\e};
+ \end{tikzpicture}
+ \caption{\label{fig:sizegrid} Sample setup of a grid where $\mDD = 3$ and $\mLL = 5$}
+\end{figure}
+
+Since we know the dimensions of the grid and the nodes are numbered sequentially, we can easily determine the amount of nodes to the left of our leader: this is $\mLL \mmod \mDD$. The amount of nodes above our leader is $\mLL \mdiv \mDD$. Since grid $x$-coordinates are from left to right, the leftmost coordinate is the smallest, so the minimum $x$-coordinate is $-(\mLL \mmod \mDD)$. The grid $y$-coordinates are from bottom to top, which means that we need to determine the number of nodes above the leader node. This means the minimum $y$-coordinate is $-((\mDD-1) - (\mLL \mdiv \mDD))$.
+
+Determining the maximum coordinates of the grid can be performed in a similar session: as stated, we need to determine the amount of nodes to the right of the leader node. Since there are $\mLL \mmod \mDD$ nodes to the left of the leader node, there are $(\mDD - 1) - (\mLL \mmod \mDD)$ nodes to the right of the leader node, so the maximum $x$-coordinate is $(\mDD - 1) - (\mLL \mmod \mDD)$. Finally, we need to determine the number of nodes above the leader node: this is $\mLL \mdiv \mDD$, which means the maximum $y$-coordinate is $\mLL \mdiv \mDD$. Summarizing, we can define $makeMinCoords = \coord{-a, -((\mDD - 1) - b)}$ and $makeMaxCoords = \coord{(\mDD - 1) - a, b}$ where $a = \mLL \mmod \mDD$ and $b = \mLL \mdiv \mDD$.
+
+As usual, we need to introduce actions in order to model the communications. To this end, we introduce actions \TT{sendMinMax}, \TT{recvMinMax} and \TT{commMinMax}, all with parameters $num,leaderid,min,$ $max$: current leader id $leaderid$ and $min$, $max$ which are considered to be the minimum and maximum coordinates are communicated with node number $num$. Again, \TT{commMinMax} is the communication function between \TT{sendMinMax} and \TT{recvMinMax}.
+
+Once a node retrieves updated min/max coordinates, we need some way to verify these. This is why we define the \TT{reportMinMax}, \TT{checkMinMax} and \TT{commMinMax2} actions, all using parameters $num,min,max$, stating node number $num$ has reported new minimum/maximum positions $min$/$max$. A monitor process uses \TT{checkMinMax} actions to validate the positions: whenever a node reports mix/max coordinates, we acknowledge them and keep track of the number of successful or invalid reports.
+
+In order to be able to report that the desired state has been reached, we introduce \TT{success} and \TT{reset} actions as usual - the monitor process will issue a \TT{success} once all nodes have reported correct minimum/maximum coordinates.
+
+Summarizing, we have the following actions:
+
+\begin{itemize}
+\item $\TT{sendMinMax(num,leaderid,min,max)} \comm \TT{recvMinMax(num,leaderid,min,max)} \\
+       \rightarrow \TT{commMinMax(num,leaderid,min,max)}$ \\
+These actions are used to send, receive and communicate leader id $leaderid$ and minimum/maximum coordinates $min$/$max$ to node number $num$.
+\item $\TT{reportMinMax(num,min,max)} \comm \TT{checkMinMax(num,min,max)} \\
+       \rightarrow \TT{commMinMax2(num,min,max)}$ \\
+Once node number $num$ retrieves new min/max coordinates $min$/$max$, it will use a \\
+\TT{reportMinMax} action to inform a monitor process, which uses the \TT{checkMinMax} action to verify the coordinates. 
+\item \TT{success} \\
+Once all nodes have reported their min/max coordinates, a \TT{success} action is issued if all coordinates are correct.
+\item \TT{reset} \\
+Whenever contradictory messages are being received, the node must be reset.
+\end{itemize}
+
+Before we discuss the main process, we need to declare functions that return the minimum and maximum of two coordinates, as outlined in Section \ref{sec:opgridsize}. We call these functions $minCoord$ and $maxCoord$ and give their corresponding declarations immediately:
+
+\begin{codeverb}
+map     maxCoord : Coord#Coord -> Coord;
+        minCoord : Coord#Coord -> Coord;
+var     x1,y1,x2,y2: Int;
+eqn     maxCoord(coord(x1,y1),coord(x2,y2)) = coord(max(x1,x2),max(y1,y2));
+        minCoord(coord(x1,y1),coord(x2,y2)) = coord(min(x1,x2),min(y1,y2));
+\end{codeverb}
+
+We will now introduce the model:
+
+\begin{codeverb}
+proc    Smartpixel3init(num:Nat) =
+         Smartpixel3(num,num==LEADERNUM,mapNodeId(LEADERNUM),if(num==LEADERNUM,0,4),
+                     calcCoord(num),calcCoord(num),calcCoord(num));
+
+        Smartpixel3(num:Nat,actAsLeader:Bool,lid,s:Nat,log,mincoord,maxcoord:Coord) =
+\end{codeverb}
+
+We introduce the \TT{Smartpixel3init(num)} process, which is used for initialization of a leader or ordinary node based on the node number $num$. Initial default parameters are given to keep the initialization of the model more compact. We then introduce the \TT{Smartpixel3} process itself.
+
+\begin{codeverb}
+(s<4&&neighbornum(num,rr(s,RotationList.num))==num) -> intern .
+    Smartpixel3(num,actAsLeader,lid,s+1,log,mincoord,maxcoord) +
+(s<4&&neighbornum(num,rr(s,RotationList.num))!=num) ->
+    sendMinMax(neighbornum(num,rr(s,RotationList.num)),lid,mincoord,maxcoord) .
+    Smartpixel3(num,actAsLeader,lid,s+1,log,mincoord,maxcoord) +
+\end{codeverb}
+
+If a node has not sent its min/max coordinates to direction $s$, let it do so and the update $s$. This corresponds with lines \ref{sp3:sent1} - \ref{sp3:sent2} of the algorithm.
+
+\begin{codeverb}
+sum n:Nat,cmin,cmax:Coord . (n>lid) -> recvMinMax(num,n,cmin,cmax) . reset +
+\end{codeverb}
+
+If min/max coordinates are received from a higher leader id, it means there must be multiple leaders and we reset the system (lines \ref{sp3:multil1} - \ref{sp3:multil2}).
+
+\begin{codeverb}
+sum n:Nat,cmin,cmax:Coord . (n<=lid&&
+    (minCoord(cmin,mincoord)!=mincoord||maxCoord(cmax,maxcoord)!=maxcoord)) ->
+     recvMinMax(num,n,cmin,cmax) .
+     reportMinMax(num,minCoord(cmin,mincoord),maxCoord(cmax,maxcoord)) .
+     Smartpixel3(num,actAsLeader,n,0,log,
+      minCoord(cmin,mincoord),maxCoord(cmax,maxcoord)) +
+\end{codeverb}
+
+If smaller minimum or greater maximum coordinates have been received, report them to the monitor process and update the process accordingly (algorithm lines \ref{sp3:new1} - \ref{sp3:new2})
+
+\begin{codeverb}
+sum n:Nat,cmin,cmax:Coord . (n<=lid&&minCoord(cmin,mincoord)==mincoord&&
+    maxCoord(cmax,maxcoord)==maxcoord) ->
+       recvMinMax(num,n,cmin,cmax) .
+       Smartpixel3(num,actAsLeader,n,log,mincoord,maxcoord,s);
+\end{codeverb}
+
+If coordinates are received which do not influence the min/max coordinates we currently have, we only need to honor the leader id, which can only be smaller or equal than what we currently know (algorithm line \ref{sp3:ignore})
+
+\begin{codeverb}
+proc    ResultMon(ok:Int) =
+         sum id:Pos,cmin,cmax:Coord . ((x(cmax)-x(cmin)+1 == DIM) &&
+                                       (y(cmax)-y(cmin)+1 == DIM) &&
+                                       ((cmin!=makeMinCoords)||(cmax!=makeMaxCoords))) ->
+                                      checkMinMax(id,cmin,cmax) .  ResultMon(ok) +
+\end{codeverb}
+
+This is the \TT{ResultMon} process, with a single parameter $ok$. This parameter stores the number of correct min/max coordinates that have been received. The next line checks once the desired grid size of $\mDD \times \mDD$ is reported, whether the expected min/max coordinates have been received. If this is not the case, the status is not updated.
+
+\begin{codeverb}
+sum id:Pos,cmin,cmax:Coord . ((x(cmax)-x(cmin)+1 == DIM) &&
+                              (y(cmax)-y(cmin)+1 == DIM) &&
+                              (cmin==makeMinCoords&&cmax==makeMaxCoords)) ->
+                             checkMinMax(id,cmin,cmax) .  ResultMon(ok+1) + @label{sp3:resultok}
+\end{codeverb}
+
+If a grid size is reported with min/max coordinates as expected and the dimensions are correct, we have one more node storing the correct min/max, so we update our state accordingly.
+
+\begin{codeverb}
+sum id:Pos,cmin,cmax:Coord . ((x(cmax)-x(cmin)+1 <  DIM) ||
+                              (y(cmax)-y(cmin)+1 <  DIM)) -> 
+                             checkMinMax(id,cmin,cmax) . ResultMon(ok) + @label{sp3:resultign}
+sum id:Pos,cmin,cmax:Coord . ((x(cmax)-x(cmin)+1 >  DIM) ||
+                              (y(cmax)-y(cmin)+1 >  DIM)) ->
+                             checkMinMax(id,cmin,cmax) . ResultMon(ok) + @label{sp3:resultfail}
+(ok>=DIM*DIM) -> success; @label{sp3:victory}
+\end{codeverb}
+
+Grid sizes that are smaller than the final dimensions can be ignored, as the nodes are probably still working out how large the grid is. However, it is obviously not correct if bigger dimensions are being reported than we actually expect, so do not register success in such a case. Finally, if all nodes have reported the grid size correctly, we initiate a \TT{success} action.
+
+\begin{codeverb}
+proc    System =
+         allow({commMinMax,commMinMax2,success,reset}, (
+          comm({sendMinMax|recvMinMax->commMinMax,reportMinMax|checkMinMax->commMinMax2}, (
+             Smartpixel3init( 1) || Smartpixel3init( 2) || Smartpixel3init( 3) ||
+             Smartpixel3init( 4) || Smartpixel3init( 5) || Smartpixel3init( 6) ||
+             Smartpixel3init( 7) || Smartpixel3init( 8) || Smartpixel3init( 9) ||
+             ResultMon(0)
+          ))
+         ));
+\end{codeverb}
+
+We begin by specifying the actions we allow. Again, this is used to block explicit \TT{sendMinMax}, \TT{recvMinMax}, \TT{reportMinMax} and \TT{checkMinMax} actions, since we are only interested in the communication between actions. Finally, we list the processes themselves.
+
+\section{The results}
+
+The goal of this phase is to determine whether all nodes receive the correct minimum and maximum grid coordinates, where the correct minimum coordinate is $makeMinCoords$ and the correct maximum coordinate is $makeMaxCoords$ as previously described.
+\\
+\begin{property} \label{prop:minmaxcoord} The algorithm $DetermineGridSize$ as modeled in Section \ref{model:gridsize} results in all nodes considering $makeMinCoords$ as minimum grid coordinates and $makeMaxCoords$ as maximum grid coordinates.
+\end{property}
+
+\begin{proof}
+We note that line \ref{sp3:resultok} of the model increases the count of correct coordinates reported if the dimensions are correct and the coordinates reported are correct. Consecutively, line \ref{sp3:victory} reports success if and only if \emph{all} nodes have reported the correct position. Thus, we generate a labeled transition system in which we only show the \TT{success} and \TT{reset} actions. The result is illustrated in Figure \ref{fig:gridsvg}.
+
+\begin{statespace}{fig:gridsvg}{Grid size determination in which only $success$ and $reset$ actions are visible}
+ \initialstate{n0};
+ \node (n1) [state,right of=n0] {1};
+ \draw [arrow] (n0) to node [auto] {success} (n1);
+\end{statespace}
+
+We observe that the \TT{success} action will always be performed, whereas the \TT{reset} action will not. We observe that all nodes will end up in a state where they know the minimum/maximum grid coordinates as defined by $calcMinCoord$ and $calcMaxCoord$ as claimed.
+\end{proof}
+
+Property \ref{prop:minmaxcoord} can also be expressed as a modal formula, which is $[{\overline{\it success}}^{\star} ] \langle {\it true}^{\star} \cdot {\it success} \rangle {\it true}$: as long as a \TT{success} has not been performed, it must eventually be possible to do so. As expected, this property holds in the model.

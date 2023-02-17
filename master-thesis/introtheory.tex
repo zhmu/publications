@@ -1,0 +1,280 @@
+\chapter{Introduction to process algebra}
+
+% wat is een actie? wat is een proces? communicatie.
+
+\section{Basics of process algebras}
+\label{sec:pabasics}
+
+The foundation of the formal modeling methodology as used throughout the thesis is known as \emph{process algebra}: a process algebra is an abstract method to describe the behavior of a system from a high-level perspective. The process algebra used in the thesis is the one used by mCRL2 \cite{groote07mcrl2} as described in \cite{groote07radv}, which in turn is based on ACP \cite{bergstra84acp}. Process algebras are specified using axioms; axioms can be seen as rules which are always valid. All axioms are presented in Appendix \ref{apx:axioms}.
+
+Generally, a system is divided into a number of \emph{processes}. The idea of this division is that processes are independent: they only influence each other when explicitly modeled that they do, by means of communication (this will be discussed in Section \ref{sec:macomm}). Of course, these processes need to work together to hopefully achieve the desired effect. We refer to the set of all processes as the \emph{system} we are modeling. For example, if we were to model a coffee vending machine, there may be a process $\mathcal{U}$ responsible for the user input, a process $\mathcal{P}$ responsible for handling payment and a process $\mathcal{S}$ responsible for serving the coffee. If money has been inserted, the payment process should inform the user interface, to allow the user to see how much money has been inserted into the machine. Likewise, if a flavor has been selected and enough money has been inserted into the machine, the serving process should be instructed to start brewing coffee.
+
+In the example above, the overall coffee vending system consists of processes $\mathcal{U}$, $\mathcal{P}$ and $\mathcal{S}$, which all run in parallel. As these processes run in parallel, it is possible to combine them into a single process yielding the same behavior as all processes in parallel would, by means of the \emph{parallel operator} $\parallel$. The result is that we can obtain a process $\mathcal{M}$ illustrating the behavior of the entire coffee vending machine, for which it holds that $\mathcal{M} = \mathcal{U} \parallel \mathcal{P} \parallel \mathcal{S}$. This operator will be covered in Section \ref{ref:parallelop} - for now, the most important notion is the existence of the operator.
+
+\section{Actions}
+\label{sec:actions}
+
+Modeling can generally be regarded as describing a system from a high-level perspective: most implementation details, for example the precise steps required to communicate a message from one system to another are not discussed: such implementation details are rarely interesting from such a high-level abstraction. This brings us to the notion of \emph{actions}: basically, an action is an atomic event which may or may not occur - for example, we may have an action $opendoor$, which illustrates that some door has been opened and an action $closedoor$ which illustrated the same door has been closed. It must be noted that a system designer is always free to chose the action names; claiming action $a$ illustrates that some door has been opened is fine as well. To this end, an overview mapping each action to an atomic event should always be included in every model to prevent possibly confusion or ambiguity. For the remainder of this chapter, we shall use action names $a$, $b$, $c$, etc. if we need to refer to some arbitrary action without a special function.
+
+One may wonder, since we appear to only support actions, how events are being represented within our formalism. This introduces some food for thought: what is the difference between an action and an event? A natural response is that an action represents a change initiated by the process, whereas an event represents a change initiated by the environment. Yet, this distinction is actually confusing, since if we were to create a model detailing the interactions between two processes, a change initiated by the first process would be an environment change for the second process, and the other way around! From this, it follows that distinguishing between actions and events is not a very good idea: it makes matters much more confusing.
+
+Based on the reasoning above, any atomic event can be encoded as an action, like opening/closing doors, but there could be an event $isDoorOpen$, which indicates a door is sufficiently opened to allow a person to move through it. If we want to check whether the door is sufficiently opened, we attempt to issue a $isDoorOpen$ action. If this is possible, the door is indeed sufficiently opened. If this action cannot be performed (this is referred to as an action being \emph{blocked}), we know the door is not sufficiently opened.
+
+Given this notion of actions, we note that we may want to parametrize actions: if we are modeling communication of numbers, we do not want to introduce action $send\emph{0}$ to indicate we have sent a $0$, $send\emph{1}$ for sending a $1$, etc - we simply issue a $send(0)$, $send(1)$ and so forth, and define $send : \mathds{N}$: an action that takes a natural number as parameter. Of course, we can also use multiple parameters: if we have $send : \mathds{N} \times \mathds{B}$, this indicates action $send$ takes a natural number and a boolean value.
+
+There is an important special action, the \emph{deadlock} action $\delta$, which illustrates that no action can be done and that there is no termination possible; once a process is in a deadlock state, it cannot do anything and will stay deadlocked forever. While it may seem a bit odd to introduce the notion of a deadlock in our model, it is generally not directly used within specifications but rather the result of other operators, the most important of which will be introduced in the next sections. The $\delta$ action has two distinct properties: if we can chose between a deadlock or another action, the other action will always be selected; this makes sense as we intend to avoid a deadlock as long as possible. Secondly, we cannot continue after a deadlock: the process is deadlocked, so there is nothing it can do. These properties are illustrated in axioms A6 and A7 (the precise meanings of $+$ and $\cdot$ will be illustrated in Section \ref{sec:specifyproc})
+
+\section{Multi-actions and communication}
+\label{sec:macomm}
+
+As we are modeling independent systems, it may be possible that multiple atomic actions are performed at exactly the same moment in time. This is denotes as $a \comm b \comm \dots$: actions $a$, $b$, etc. all occur at exactly the same moment in time. While this may seem odd at first, remember that systems generally consist of multiple processes, and these processes are all independent so they can issue an action regardless of what another process is doing.
+
+Using this concept of multi-actions, we can introduce the notion of \emph{communication}: if one process performs a $send(1)$ action to indicate it sends the value $1$, we want another process to be able to perform a $receive(1)$ action (but not $receive(2)$ for example, as value $2$ clearly is not sent). This means we have to specify that actions $send$ and $receive$ in a sense `belong' together: we want to combine them in a single action. This is achieved using the concept of a \emph{communication operator}, which we call $\Gamma_C$: this $\Gamma_C$ maps a multi-action to a new action, using the definitions as supplied in the set $C$. For example, we would define $C = \{ send \comm receive \rightarrow communicate \}$ to illustrate that we refer to a $send$ action simultaneously occurring with a $receive$ action as a $communicate$ action. This means that if we apply communication set $C$ to multi-action $send \comm receive$, we expect to obtain $communicate$, which is indeed the case since $\Gamma_{\{ send \comm receive \rightarrow communicate \}} (send \comm receive) = communicate$, as illustrated by axiom C1. We note that if the actions have parameters, they are only allowed to communicate if all parameters are equal, and left as-is otherwise: for example, $\Gamma_{ \{ a \comm b \rightarrow c \}} (a(0) \comm b(0)) = c(0)$, but $\Gamma_{ \{ a \comm b \rightarrow c \}} (a(0) \comm b(1)) = a(0) \comm b(1)$, as illustrated by axiom C1.
+
+The deadlock action $\delta$ deserves special mention when occurring in a multi-action: when $\delta$ occurs in some multi-action, this basically means that something is happening along with a deadlock. The result is, of course, that the entire process is deadlocked, as $\delta$ cannot be followed by an action. This property follows from axioms S1, S4 and C2.
+
+\section{Blocking actions}
+
+In most cases, we want to disallow certain actions to be issued. This may seem a bit counter-intuitive, as one may wonder why we introduced them to begin with. However, recall the previous section discussing communication: the communication operator only has an effect if all parameters are equal. Thus, if we have process $P$ trying to send values by means of an action $send(n)$ and another process $Q$ receiving values by means of $receive(m)$ where $send \comm receive \rightarrow communicate$, then we would end up with $communicate(n)$ if and only if $n = m$, and $send(n) \comm receive(m)$ otherwise. Clearly, we do not want to receive values that are not being sent - we want the result of $P \parallel Q$ to contain only $communicate(n)$ actions.
+
+This can be prevented by using the \emph{blocking operator} $\encap{B}$, also known as the \emph{encapsulation operator}. Generally speaking, the blocking operator replaces any action that is in the set $B$ by a $\delta$; this has the result of disallowing or blocking the action. For example, $\encap{ \{ a \} } a = \delta$ and $\encap{ \{ a \} } b = b$, as illustrated by axioms E2 and E3.
+
+Using the blocking operator, if we specify $\encap{ \{ send, receive \} } \Gamma_{ \{ send \comm receive \rightarrow communicate \} } P \parallel Q$, the result is that only $communicate(n)$ actions will `survive' - the individual $send$ and $receive$ actions are blocked. As we first apply the communication operator $\Gamma$, the result is that any corresponding $send(n) \comm receive(n)$ actions will be replaced by $communicate(n)$ actions, after which any surviving $send$ and $receive$ actions are blocked.
+
+\section{Hiding actions}
+
+As might be expected, a system tends to grow rather large. In a sense, it will easily become cluttered with a lot of actions we are not interested in; for example, if we are creating a model of a coffee vending machine, we generally are not interested in all communication messages between the various processes. Rather, we are interested whether making a selection and inserting a number of coins always results in a cup of coffee being served or that it is possible for the system to deadlock at some moment in time due to an unforeseen sequence of events. This is where the internal action $\tau$, also known as a \emph{silent step} becomes interesting. We use $\tau$ to denote that the state of the process has changed, but there has not been any visible behavior.
+
+In order to be able to apply this reasoning to our model, we introduce the \emph{hiding operator} $\tau_I$, which renames actions that occur in $I$ to $\tau$. The result is that, for example, $\tau_{\{ a \}} a = \tau$ and $\tau_{\{ a \} } b = b$, as illustrated by axioms H2 and H3. An important observation is to consider what the result is of a $\tau$ in a multi-action: actions are occurring, including internal behavior that is unobservable. One may expect that the result is that the $\tau$ action vanishes; if we derive $\tau_{ \{ a \} } a | b = \tau | b = b$, we see that this is indeed the case, as illustrated by axioms H4, H2 and S3.
+
+\section{Specification of processes}
+\label{sec:specifyproc}
+
+As the basics of processes have been covered in the previous sections, we will now focus on how processes are specified. We start by introducing the following operators:
+
+\begin{itemize}
+\item Alternative composition $+$ \\
+The choice operator $+$  specifies that there is a choice that needs to be made. For example, if we have $a + b$, either an $a$ or a $b$ action can be performed. Note that the choice is made in a non-deterministic manner: if both $a$ and $b$ can be done, $a$ does \emph{not} take precedence! Furthermore, if there is a choice between an action $\alpha$ and the deadlock $\delta$, action $\alpha$ is always performed, since $\alpha + \delta = \alpha = \delta + \alpha$ as illustrated by axioms A6 and A1.
+\item Sequential composition $\cdot$ \\
+The sequential operator $\cdot$ specifies that one action is followed by another action. For example, if we have $a \cdot b$, this illustrated that an action $a$ must be followed by an action $b$.
+\item Condition operator $\rightarrow$ \\
+The conditional operator $\rightarrow$ is similar to the if-then-else construct in standard programming languages. For example, $n > 4 \rightarrow a \diamond b$ specifies that if $n$ is larger than $4$, an $a$ action is to be performed, otherwise a $b$ action must be performed. We conveniently introduce $\alpha \rightarrow \beta$ as a shorthand notation for $\alpha \rightarrow \beta \diamond \delta$.
+\item Summation operator $\sum$ \\
+The summation operator $\sum$ is basically a generalization of the $+$ operator illustrated before, which we again shall introduce by using an example: $\sum_{i: \mathds{B}} a(i)$ denotes that there is a choice of action $a(i)$ for any value $i \in \mathds{B}$. Since $\mathds{B} = \{ true, false \}$, this means $\sum_{i: \mathds{B}} a(i) = a(true) + a(false)$. However, this can be combined using the $\rightarrow$ operator as illustrated before: for example, if we specify $\sum_{i : \mathds{N}} i < 10 \rightarrow a(i)$, this is equal to $a(0) + a(1) + a(2) + \dots + a(8) + a(9)$ - the former is much more compact than the latter.
+\end{itemize}
+
+Processes are usually specified using recursion. For example process $P = a \cdot P$ is the process that can perform an $a$ action, followed by an $a$ action, etc. This makes it convenient to write down processes that do not terminate. Processes can have parameters as well: for example, if we declare $P(n: \mathds{N}) = a(n) \cdot P(n+1)$ then $P(0) = a(0) \cdot a(1) \cdot \dots$: a process that performs an $a$ action with value $n$ and then increments this value $n$.
+
+The behavior of a process is usually much clearer if we have a graphical way to illustrate processes, which we shall do by means of a Labelled Transition System or LTS. An LTS generally contains a set of states $\mathcal{S}$, an initial state $\mathcal{S}_0$, a set of actions $\mathcal{A}$ and a transition relation $\mathcal{R}$ that maps a state and an action to another state (thus, $\mathcal{R} \subseteq \mathcal{S} \times \mathcal{A} \times \mathcal{S}$). An LTS is an ideal way to compactly visualize processes, as we shall show by illustrating some examples in Figure \ref{fig:lpsexample}, where the initial state has an incoming arrow pointing into it.
+
+\begin{figure}[h]
+ \centering
+ \begin{tikzpicture}
+  \tikzstyle{state}=[draw,circle,node distance=25mm]
+  \tikzstyle{arrow}=[->,shorten <=1pt,>=stealth',semithick]
+  % P = a . P
+  \node (n0) [state] {};
+  \draw (n0) + (-0.5, -0.75) node {$P = a \cdot P$};
+  \draw [arrow] (n0) + (0,0.5) to (n0);
+  \draw [arrow,loop left] (n0) to node [auto] {a} (n0);
+  % Q = a . Q + b .Q 
+  \node (n1) [state,right of=n0] {};
+  \draw (n1) + (0, -0.75) node {$Q = a \cdot Q + b \cdot Q$};
+  \draw [arrow] (n1) + (0,0.5) to (n1);
+  \draw [arrow,loop left] (n1) to node [auto] {a} (n1);
+  \draw [arrow,loop right] (n1) to node [auto] {b} (n1);
+  % R = a . b . R
+  \node (n5) [state,right of=n1] {};
+  \node (n6) [state,below of=n5] {};
+  \draw (n6) + (0, -0.75) node {$R = a \cdot b \cdot R$};
+  \draw [arrow] (n5) + (0,0.5) to (n5);
+  \draw [arrow, bend left] (n5) to node [auto] {a} (n6);
+  \draw [arrow, bend left] (n6) to node [auto] {b} (n5);
+  % S = a . b . S +  c . d . S
+  \node (n2) [state,right of=n5] {};
+  \node (n3) [state,right of=n2] {};
+  \node (n4) [state,below of=n2] {};
+  \draw (n4) + (1.0, -0.75) node {$S = a \cdot b \cdot S + c \cdot d \cdot S$};
+  \draw [arrow] (n2) + (0,0.5) to (n2);
+  \draw [arrow, bend left] (n2) to node [auto] {a} (n3);
+  \draw [arrow, bend left] (n3) to node [auto] {b} (n2);
+  \draw [arrow, bend left] (n2) to node [auto] {c} (n4);
+  \draw [arrow, bend left] (n4) to node [auto] {d} (n2);
+ \end{tikzpicture}
+ \caption{\label{fig:lpsexample} Examples of several LTS-es}
+\end{figure}
+
+\section{The parallel operator}
+\label{ref:parallelop}
+
+In the first section, we have somewhat informally described the $\parallel$ operator as an operator which given two processes results in the behavior of these two processes in parallel. In order to illustrate the way this works, let us consider the expected behavior of process $P \parallel Q$. There are three possibilities:
+
+\begin{itemize}
+\item Process $P$ performs an action before process $Q$
+\item Process $Q$ performs an action before process $P$
+\item Both processes perform an action simultaneously.
+\end{itemize}
+
+Let us illustrate this by considering a small example, consisting of process $P = a \cdot b$, process $Q = c$ and process $Z = P \parallel Q$. While we can formally derive process $Z$ (this is performed in Appendix \ref{apx:proofs}), it is also possible to do so by simply following the three possibilities outlined above. We shall use these to construct process $Z  = P \parallel Q$. First of all, note that the very first possibility is that process $P$ performs an action, which results in an $a$ action. Likewise, it's also possible that process $Q$ performs an action, which is action $c$. Finally, both processes can perform an action simultaneously, which would result in the multi-action $a \comm c$. The result is illustrated in Figure \ref{fig:par1} - we have numbered all states so we can refer to them.
+
+\begin{lts}{fig:par1}{Under-construction LTS of process $Z = (a \cdot b) \parallel c$, step 1}
+ \node (n0) [state] {0};
+ \draw [arrow] (n0) + (0,0.5) to (n0);
+ \node (n1) [state,below left of=n0] {1};
+ \node (n2) [state,below of=n0] {2};
+ \node (n3) [state,below right of=n0] {3};
+ \draw [arrow] (n0) to node [auto] {$a$} (n1);
+ \draw [arrow] (n0) to node [auto] {$a \comm c$} (n2);
+ \draw [arrow] (n0) to node [auto] {$c$} (n3);
+\end{lts}
+
+Now, the next action can be performed. Let us consider the case in which process $P$ has performed an $a$ action. The only options are for process $P$ to perform an action, which must be action $b$ (since the $a$ has already occurred). Process $Q$ can also perform an action, which is action $c$. Finally, the $b$ and $c$ actions can be performed simultaneously, resulting in $b \comm c$. The result is illustrated in Figure \ref{fig:par2}.
+
+\begin{lts}{fig:par2}{Under-construction LTS of process $Z = (a \cdot b) \parallel c$, step 2}
+ \node (n0) [state] {0};
+ \draw [arrow] (n0) + (0,0.5) to (n0);
+ \node (n1) [state,below left of=n0] {1};
+ \node (n2) [state,below of=n0] {2};
+ \node (n3) [state,below right of=n0] {3};
+ \node (n4) [state,below left of=n1] {4};
+ \node (n5) [state,below of=n1] {5};
+ \draw [arrow] (n0) to node [auto] {$a$} (n1);
+ \draw [arrow] (n0) to node [auto] {$a \comm c$} (n2);
+ \draw [arrow] (n0) to node [auto] {$c$} (n3);
+ \draw [arrow] (n1) to node [auto] {$b$} (n4);
+ \draw [arrow] (n1) to node [auto] {$c$} (n2);
+ \draw [arrow] (n1) to node [auto] {$b \comm c$} (n5);
+\end{lts}
+
+There is an interesting observation to be made: in Figure \ref{fig:par2}, why does doing an $c$ action in state $1$ result in ending up in state $2$ and not a new state? This question can also be rephrased: do we end up in different states if we perform an $a$ action followed by a $c$ action compared to when we perform an $a \comm c$ action, e.g. we perform an $a$ and $c$ action simultaneously. This is not the case: after we have performed an $a$ action in process $P$ followed by a $c$ action in process $Q$, process $P$ can only do a $b$ action while process $c$ cannot do anything anymore; the same holds if we do a $a \comm c$ action. We continue by considering the next action after which process $Q$ has performed a $c$ action. Process $Q$ cannot do anything anymore, so process $P$ has to do an $a$ action, as illustrated in Figure \ref{fig:par3}.
+
+\begin{lts}{fig:par3}{Under-construction LTS of process $Z = (a \cdot b) \parallel c$, step 3}
+ \node (n0) [state] {0};
+ \draw [arrow] (n0) + (0,0.5) to (n0);
+ \node (n1) [state,below left of=n0] {1};
+ \node (n2) [state,below of=n0] {2};
+ \node (n3) [state,below right of=n0] {3};
+ \node (n4) [state,below left of=n1] {4};
+ \node (n5) [state,below of=n1] {5};
+ \draw [arrow] (n0) to node [auto] {$a$} (n1);
+ \draw [arrow] (n0) to node [auto] {$a \comm c$} (n2);
+ \draw [arrow] (n0) to node [auto] {$c$} (n3);
+ \draw [arrow] (n1) to node [auto] {$b$} (n4);
+ \draw [arrow] (n1) to node [auto] {$c$} (n2);
+ \draw [arrow] (n1) to node [auto] {$b \comm c$} (n5);
+ \draw [arrow] (n3) to node [auto] {$a$} (n2);
+\end{lts}
+
+We see that the reasoning above still holds in Figure \ref{fig:par3}: there is no difference between first doing an $a$ action followed by a $c$ action,  first doing a $c$ action followed by an $a$ action or doing an $a$ and $c$ action simultaneously - regardless of the order we take them in, we end up in state 2. This diamond-like shape is actually very common when visualizing statespaces, and it is known as the notion of \emph{confluence}: often, the order of two actions is not important as the resulting state is the same. This can lead to optimizations of the state space, as the whole state space doesn't need to be calculated in order to obtain this result. Finally, if we consider the remaining action that are still possible, we obtain:
+
+\begin{lts}{fig:par4}{Completed LTS of process $Z = (a \cdot b) \parallel c$}
+ \node (n0) [state] {0};
+ \draw [arrow] (n0) + (0,0.5) to (n0);
+ \node (n1) [state,below left of=n0] {1};
+ \node (n2) [state,below of=n0] {2};
+ \node (n3) [state,below right of=n0] {3};
+ \node (n4) [state,below left of=n1] {4};
+ \node (n5) [state,below of=n1] {5};
+ \draw [arrow] (n0) to node [auto] {$a$} (n1);
+ \draw [arrow] (n0) to node [auto] {$a \comm c$} (n2);
+ \draw [arrow] (n0) to node [auto] {$c$} (n3);
+ \draw [arrow] (n1) to node [auto] {$b$} (n4);
+ \draw [arrow] (n1) to node [auto] {$c$} (n2);
+ \draw [arrow] (n1) to node [auto] {$b \comm c$} (n5);
+ \draw [arrow] (n3) to node [auto] {$a$} (n2);
+ \draw [arrow] (n2) to node [auto] {$b$} (n5);
+ \draw [arrow] (n4) to node [auto] {$c$} (n5);
+\end{lts}
+
+As illustrated by Figure \ref{fig:par1} to \ref{fig:par4}, even the parallel composition of two very simple processes results in quite a number of states. Often, these can be reduced by using the $\tau_I$ and $\encap{B}$ operators as illustrated in the previous sections. As derived in Lemma \ref{lemma:abcommc}, the resulting process of $(a \cdot b) \parallel c = a \cdot (b \cdot c + c \cdot b + b \comm c) + c \cdot a \cdot b + a \comm c \cdot b$, which is the same process as illustrated in Figure \ref{fig:par4}. The important notion here is that putting multiple processes in parallel results in a lot of previously unexpected possibilities, which is why formally modeling these processes is beneficial: conditions that are unexpected will always turn up sooner or later.
+
+\section{An example}
+
+In order to get a clearer view of this theory, let us consider the following example: suppose we have a very basic alarm clock, which starts sounding an alarm at 7:00 AM. Once it is sounding, the user has two options: the alarm can be switched off by pushing the off button or it can be postponed for 10 minutes by pushing the snooze button. This behavior is illustrated in the following algorithm:
+
+\begin{myalgo}{AlarmClock}{}
+ $alarmSounding \qlet false$ \label{ac:initas} \\
+ \qwhile $forever$ \\
+ \qdo \qif $alarmSounding$ \label{ac:alon} \\
+      \qthen \qcomment{The alarm is sounding - handle buttons} \\
+             \qif off button is pushed \label{ac:offbtn1} \\
+             \qthen \qcomment{Alarm must be turned off} \\
+                    Turn the alarm off \\
+                    $alarmSounding \qlet false$ \label{ac:offbtn2} \\
+             \qelse \qif snooze button is pushed \label{ac:snzbtn1} \\
+                    \qthen \qcomment{We must delay the inevitable for 10 minutes} \\
+                           Turn the alarm off \\
+                           Wait for 10 minutes \\
+                           Turn the alarm on  \label{ac:snzbtn2} \qfi \qfi \\
+      \qelse \qcomment{The alarm is not sounding} \\
+             \qif it is 7:00 AM \label{ac:wakey1} \\
+             \qthen \qcomment{Wakey wakey!} \\
+                    Turn the alarm on \\
+                    $alarmSounding \qlet true$ \label{ac:wakey2}
+\end{myalgo}
+
+How have we constructed this algorithm? Generally, we have just followed our intuition and wrote down what we expect would work. Typically, the next task is to implement this system in some programming language and check whether it does what we intended. However, we will be using this algorithm to construct a process $P$ of the system. First of all, we need to define the actions that we will be using. Keep in mind that actions can represent either an incoming or outgoing event, as illustrated in Section \ref{sec:actions}.
+
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\TT{AlarmOn}      & Start sounding the alarm \\
+\hline
+\TT{AlarmOff}     & Turn the alarm sound off \\
+\hline
+\TT{SnoozeButton} & The snooze button has been pushed \\
+\hline
+\TT{OffButton}    & The off button has been pushed \\
+\hline
+\TT{Timer}        & 7:00AM has arrived \\
+\hline
+\TT{Delay10}      & 10 minutes have passed \\
+\hline
+\end{tabularx}
+
+There is only a single variable in the algorithm, $alarmSounding$. This variable is used to see if we need to react on any buttons pushed, so our process will need this variable as well. This means our process will be $P(alarmSounding: \mathds{B})$, and $alarmSounding$ is initially $false$ due to the assignment in line \ref{ac:initas}. Let us focus on lines \ref{ac:offbtn1} - \ref{ac:offbtn2}: if the alarm is sounding ($alarmSounding = true$), pushing the off button should stop the alarm sound. In our process, this would become:
+
+\begin{displaymath} alarmSounding \rightarrow \TT{OffButton} \cdot \TT{AlarmOff} \cdot P(false) \end{displaymath}
+
+What does this represent? If $alarmSounding$ holds (due to the conditional operator $\rightarrow$), attempt an \TT{OffButton} action. If this is successful, it will be followed by an \TT{AlarmOff} action and subsequently by process $P$ where the parameter (this is the $alarmSounding$ parameter) is $false$, as the alarm will no longer be sounding. This confirms with the algorithm lines \ref{ac:offbtn1} - \ref{ac:offbtn2}. Subsequently, we can list the behavior of the snooze button similarly:
+
+\begin{displaymath} alarmSounding \rightarrow \TT{SnoozeButton} \cdot \TT{AlarmOff} \cdot \TT{Delay10} \cdot \TT{AlarmOn} \cdot P(alarmSounding) \end{displaymath}
+
+Once again, we shall dissect this line piece by piece: if $alarmSounding$ holds, attempt a \TT{SnoozeButton} action. If this is successful, we will in sequence perform \TT{AlarmOff} - to switch the alarm sound off, a \TT{Delay10} action to wait for 10 minutes, \TT{AlarmOn} to start the alarm sound and finally, we return to our process without changing the parameter (since we just pass the same value of $alarmSounding$ to $P$ again). This corresponds with lines \ref{ac:snzbtn1} - \ref{ac:snzbtn2}. Finally, there is only the case left where the alarm needs to start sounding, which is:
+
+\begin{displaymath} \lnot alarmSounding \rightarrow \TT{Timer} \cdot \TT{alarmOn} \cdot P(true) \end{displaymath}
+
+If the alarm is not sounding, attempt a \TT{Timer} action. If this is successful, continue by turning the alarm on by means of an \TT{AlarmOn} action and continue our process while setting the $alarmSounding$ parameter to $true$. This confirms with the algorithm lines \ref{ac:wakey1} - \ref{ac:wakey2}. We list the complete specification of process $P$:
+
+$P(alarmSounding:\mathds{B}) =$ \\
+$~\hspace*{1cm} alarmSounding \rightarrow \TT{OffButton} \cdot \TT{AlarmOff} \cdot P(false)~+$ \\
+$~\hspace*{1cm} alarmSounding \rightarrow \TT{SnoozeButton} \cdot \TT{AlarmOff} \cdot \TT{Delay10} \cdot \TT{AlarmOn} \cdot P(alarmSounding)~+$ \\
+$~\hspace*{1cm} \lnot alarmSounding \rightarrow \TT{Timer} \cdot \TT{alarmOn} \cdot P(true)$ \\
+
+Why do we claim this specification $P$ is correct? First of all, note that the \TT{OffButton}, \TT{SnoozeButton} and \TT{Timer} actions are always the first actions in a row to be performed in a conditional. This means, if the condition holds, we will attempt one of these actions. The intuition is that, suppose the user does not push the off button, the \TT{OffButton} action is blocked. This means the first line will become:
+
+\begin{displaymath} alarmSounding \rightarrow \delta \cdot \TT{AlarmOff} \cdot P(false) \end{displaymath}
+
+In Section \ref{sec:macomm}, we have seen that if we are able to chose between an action $a$ or $\delta$, we always chose action $a$ since we want to avoid the deadlock. However, suppose all these actions are unavailable, then we would have no choice but to do a deadlock. Yet, there is an important aspect we have not illustrated so far: a process does not \emph{have} to perform an action - this can be delayed. Usually, if only deadlock actions are available, we will attempt to wait until something will become available - which makes perfect sense since these actions are initiated by some event. More importantly, a deadlock will only show if all possible actions can never occur, which is usually what we wish to analyze.
+
+Finally, we shall present an LTS of process $P$ in Figure \ref{fig:aclts}. We note that the behavior of the system is clearly visible in the LTS, especially compared to the algorithm.
+
+\begin{lts}{fig:aclts}{LTS of process $P$, the alarm clock example}
+ \node (n0) [state] {};
+ \draw [arrow] (n0) + (-0.5,0) to (n0);
+ \node (n1) [state,right of=n0] {};
+ \node (n2) [state,right of=n1] {};
+ \node (n3) [state,right of=n2] {};
+ \node (n4) [state,right of=n3] {};
+ \node (n5) [state,right of=n4] {};
+ \node (n6) [state,above of=n1] {};
+ \draw [arrow, bend right] (n0) to node [auto,swap] {\TT{Timer}} (n1);
+ \draw [arrow, bend right] (n1) to node [auto,swap] {\TT{alarmOn}} (n2);
+ \draw [arrow, bend right] (n2) to node [auto,swap] {\TT{snoozeButton}} (n3);
+ \draw [arrow, bend right] (n3) to node [auto,swap] {\TT{alarmOff}} (n4);
+ \draw [arrow, bend right] (n4) to node [auto,swap] {\TT{Delay10}} (n5);
+ \draw [arrow, bend right] (n2) to node [auto,swap] {\TT{offButton}} (n6);
+ \draw [arrow, bend right] (n6) to node [auto,swap] {\TT{alarmOff}} (n0);
+ \draw [arrow, bend right] (n5) to node [auto,swap] {\TT{alarmOn}} (n2);
+\end{lts}
+
+

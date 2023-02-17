@@ -1,0 +1,19 @@
+\chapter{De opdracht}
+\index{opdracht}
+\label{opdracht}
+
+De opdracht van deze stage was het ontwerpen en implementeren van een applicatie die verkeer op de \index{CAN}CAN Bus van Delem besturingen kan analyseren en kwalificeren. De exacte invulling van deze opdracht werd tijdens de stage zelf ingevuld, aan de hand van feedback van de ontwikkelaars.
+
+Dit had tot gevolg dat de tool zo breed en uitgebreid mogelijk opgezet diende te worden, zodat er altijd meer bijgebouwd kon worden. Een eis was wel, dat bestaande uitvoer van de Warwick X-Analyzer tool gelezen moest kunnen worden, alsmede real-time analyse door middel van een Softing CANusb en CANcard device.
+
+Een groot probleem was het verzuimen tot updaten van documentatie. Steeds als er nieuwe commando's op de bus bijgevoegd werden, werd vaak de documentatie niet netjes up-to-date gebracht. Na verloop van jaren was er dus vrij veel niet meer duidelijk.
+
+Om dit verschijnsel tegen te gaan, moest er een makkelijk uitbreidbare definitie van commando's bedacht worden. De bedoeling was om deze definitie zo makkelijk mogelijk door ontwikkelaars zelf te laten aanpassen, terwijl vanuit deze definitie de benodigde structuren gegenereerd werden die het programma begreep. Een voorstel voor het formaat hiervan was \index{XML}XML\footnote{Extensible Markup Language, een markup taal met zelf defini\"eerbare elementen}.
+
+Daarnaast werd het idee geopperd, om aangezien er toch een duidelijke definitie bestaat, ook direct documentatie te genereren vanuit deze definitie. Er bestond een Microsoft Word document, maar na verloop van tijd was dit hopeloos verouderd. Het idee achter het genereren van documentatie vanuit de definitie is: als het niet in het gegenereerde document staat, herkent de applicatie het commando ook niet en bestaat het commando logischerwijs niet.
+
+Het kwalificerende deel van de applicatie moet in staat zijn om mee te lopen tijdens het testen van de besturingssoftware. Mochten er dan problemen optreden tijdens het testen, moet er aan de hand van de log van de applicatie uitgezocht kunnen worden of er vreemde of ongeldige berichten op de HSB bus geweest waren. Deze logs moeten dus leesbaar in de applicatie zijn, zodat eventuele problemen snel geanalyseerd kunnen worden.
+
+De initi\"ele bedoeling was om ook een cyclus viewer te maken, die elke fase van het persen in beeld kon brengen. Nadat dit aan de ontwikkelaars voorgelegd was, bleek dat de besturing deze functionaliteit al had en het absoluut niet nuttig zou zijn om dit te implementeren.
+
+Tenslotte was het ook de bedoeling, om ontwikkelaars zo makkelijk mogelijk zaken te laten toevoegen aan de applicatie. Mocht er een zeer specifiek probleem zijn om te debuggen, dan was het zeker niet de bedoeling om de hele applicatie opnieuw te moeten bouwen. Om hierin te voldoen is er een plugin structuur bedacht, waar door middel van DLL files extra functionaliteit toegevoegd kan worden.

@@ -1,0 +1,104 @@
+\documentclass[a4paper,11pt]{article}
+\bibliographystyle{alpha}
+\usepackage{a4wide,graphicx,latexsym,wrapfig,tabularx,parskip}
+
+\begin{document}
+
+\title{Linux 2.6 VFS Locking}
+\author{Rink Springer}
+\maketitle
+
+\section{Introduction}
+
+This short article is only an introduction
+
+No buffering; no VFS details (\cite{springer05techreport}), no file-locking. Kernel sources 2.6.19 used. Filesystem drivers.
+
+\section{Locking primitives}
+
+Linux 2.6 supports the following locking primitives \cite{love05kerneldev, russell03guidelock}:
+
+\begin{itemize}
+\item Atomic operations \\
+Architecture-specific atomic integer operations are provided, these can be found in the \texttt{include/asm/atomic.h} include file. They are used to atomically read, set, add, subtract and compare a variable. These are mainly used for resource counting, and can be used in any context.
+\item Spinlocks \\
+These provide an inexpensive way to keep a CPU busy-waiting for a resource (spinning around the lock), implemented in \texttt{include/asm/spinlock.h}. A special variant called \emph{reader/writer spinlocks} is also available, where a resource may have several reader locks, but only one writer lock may be active (and only when there are no reader locks).
+\item Mutexes \\
+Short for \textbf{mut}ual \textbf{ex}clusion, these are small locks that will cause the task waiting for them to be suspended (sleeping), as opposed to spinlocks where the CPU will remain waiting until the resource is available. This means they cannot be used in any context where sleeping is forbidden.
+\item Semaphores \\
+These closely resemble mutexes, but allow the number of holders at any point in time to be specified. They will sleep whenever a lock is acquired which cannot be honoured.
+\end{itemize}
+
+\section{VFS organization}
+
+As this article solely focused on how the VFS is locked, all details regarding caching and such will not be discussed. A basic introduction on VFS caching can be found in \cite{love05kerneldev}; a more thorough description is provided in \cite{springer05techreport}.
+
+The Linux VFS consists of several key structures:
+
+\begin{itemize}
+\item \texttt{struct vfsmount} (\texttt{mount.h}) \\
+Contains details of a mounted filesystem. Every process has its own list of mounted filesystems; these are usually inherited when executing a new process.
+\item \texttt{struct super\_block} (\texttt{fs.h}) \\
+A superblock structure is the relation between a block device and a filesystem. It contains references to the filesystem driver used for this block device.
+\item texttt{struct dentry} (\texttt{dcache.h}) \\
+Short for \textbf{d}irectory \textbf{entry}, a dentry links a filename to an inode. Per standard UNIX semantics, an inode can have multiple names referencing to it (such as hard links).
+\item \texttt{struct inode} (\texttt{fs.h}) \\
+An inode is contains information about a file or directory, such as the owner's user id, group id, file permissions, file length etc.
+\item \texttt{struct file} (\texttt{fs.h}) \\
+This is a single, open file.
+\end{itemize}
+
+The following ERD details the relationship between these structures, as well as listing all revelant items:
+
+\begin{figure}[h]
+\includegraphics[angle=-90,width=10cm]{erd}
+\caption{Relationships between key VFS structures}
+\end{figure}
+
+\section{Locking}
+
+As stated in the introduction, locking is vital to ensure correct system operation.  Fine-grained locking is used in order to protect only those data structures that need to be proctected, in order to maximize performance by allowing operations not influenced by a certain structure to continue.
+
+\subsection{struct vfsmount}
+
+As stated above, this list is usually on a per-process basis; and almost all information is readonly. The few times that it must be updated (for example, when new mount(2)'s or umount(2)'s are being processed), this whole list is protected using the \texttt{vfsmount\_lock} spinlock.
+
+Each vfsmount structure uses the \texttt{mnt\_count} field as refence counter, which is updated using atomic operations. Once this number is zero, the vfsmount structure is elligable to be removed and cleaned.
+
+\subsection{struct super\_block}
+
+All super\_block structures are stored in the \texttt{super\_blocks} list, which is protected using the \texttt{sb\_lock} spinlock. This lock only protects the list of the superblocks, and not each super\_block itself; finer-grained locking is used for this purpose, in the form of the \texttt{s\_lock} mutex. This lock is under control of the filesystem driver itself, as the kernel will not touch the other fields (this makes sense, as the kernel should not suddenly change the block device or block size of a mounted filesystem).
+
+The semaphore \texttt{s\_umount} is used to protect the filesystem from multiple mount operations, and is acquired throughout the mounting/umounting/flushing code paths.
+
+\subsection{struct dentry}
+
+Each dentry structure is locked using a per-dentry \texttt{d\_lock} spinlock. It is acquired for every read and update throughout the code.
+
+Dentries have an atomic value stored in the \texttt{d\_count} field; this field is used for reference counting. Once all references are dropped, the dentry will be considered for garbage collection.
+
+\subsection{struct inode}
+
+Inodes have three locks. The \texttt{i\_lock} spinlock is used to protect the file block and byte count, and several filesystems also use this to set filesystem-specific flags per inode.
+
+The \texttt{i\_mutex} is a mutex which is used for pretty much everything else; this is mainly due to the fact that filesystem operations can potentially cause the caller to sleep (for example, if an inode is to be removed, perhaps the directory entry has to be retrieved from disk before it can be updated).
+
+The \texttt{i\_alloc\_sem} spinlock is not quite clear; it appears to be used for the file notification mechanism, as well as for O\_DIRECT direct operations. However, the precise nature eludes the author.
+
+Finally, a field \texttt{i\_count} is used for reference counting. This field is atomically incremented and decremented as needed; once all references are dropped, the inode will be considered for garbage collection.
+
+\subsection{struct file}
+
+All file structures are stored as a per-superblock list, where they are protected using the global \texttt{files\_lock} spinlock.
+
+As most other structures, the file structure has an atomic value \texttt{i\_count}, which is used to keep track of how many references to this particular file exist. Once this value reaches the value of zero, the file structure will be recyled as nothing is actively pointing to it.
+
+\section{Closing words}
+
+As outlined in the paper, only a handful of key structures make up the VFS layer. These all have very specific locks, with close to no functional overlap. The goal of this paper was to provide a basic overview of which structure is locked, and ought to provide potential VFS developers with a concise overview of the VFSlocking internals.
+
+Linux guarantees the appropriate locks will be held upon calling filesystem driver code; this helps keep filesystem drivers concise and compact. Filesystem drivers are always allowed to acquire/free extra locks where needed.
+
+\bibliography{bib}
+
+\end{document}

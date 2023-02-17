@@ -1,0 +1,18 @@
+\chapter{Conclusion}
+\index{conclusion}
+
+This report provides a complete outline of the design and realization of the filesystem. The Linux Virtual File System has briefly been covered, to represent the reader an overview what a Linux filesystem needs to provide towards the kernel itself. More in-depth information can be found in \cite{UtLK} and \cite{LKD}.
+
+The filesystem itself has also been described. This description covers the raw data structures as well as implementation-specific aspects of the current Linux implementation. This covers both implementation-specific details such as the free list, as well as limitations in the current implementation.
+
+The following improvements could be made:
+
+\begin{itemize}
+\index{File Information Table!serializable}
+\item Serializable FIT entries \\
+Currently, each inode has a fixed size. As we support up to 80 extents per inode, this means we usually waste quite a lot of space. By serializing inodes, we could store inodes far more efficient.
+\item More mindful allocation \\
+The space allocator will simply grab the first random free block it finds, without checking if an existing file would be better off allocating this block.
+\end{itemize}
+
+The filesystem has shown itself to be a stable and efficient filesystem with excellent transfer speeds.

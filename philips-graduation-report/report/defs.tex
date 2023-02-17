@@ -1,0 +1,22 @@
+\newcommand{\dodef}[2]{
+	\index{{#1}}{#1}&{#2} \\
+	\hline
+}
+
+\chapter{Definitions and abbreviations}
+\label{defs}
+
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\dodef{ABISS}{Active Block I/O Scheduling System, a scheduling system which can provide guaranteed read- and write I/O performance to applications \cite{ABISS}}
+\dodef{CRE}{Corporate Research Exhibition}
+\dodef{ext3}{Third Version of the Extended Filesystem, the default Linux filesystems}
+\dodef{extent}{An (offset, length) pair}
+\dodef{FAT}{File Allocation Table, the original MS-DOS filesystem}
+\dodef{inode}{A data structure used by the filesystem to describe a file. The contents of an inode include the file's type and size, the UID of the file's owner, the GID of the directory in which it was created, and a list of the disk blocks and and fragments that make up the file. \cite{TDaIotFOS}}
+\dodef{LIMEFS}{Large-file metadata-In-Memory Extend-based File System, the filesystem created during the internship}
+\dodef{meta data}{Data about data, used to store administration about other data. Mainly used by filesystems}
+\dodef{RTFS}{Real Time File System, filesystem designed by Philips Research for realtime storage requirements}
+\dodef{userland}{Code implemented in ordinary applications}
+\dodef{kernelspace}{Code implemented within the operating system's kernel}
+\end{tabularx}

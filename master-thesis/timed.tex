@@ -1,0 +1,147 @@
+\chapter{Timed to untimed conversion}
+
+In the previous chapters, the protocol has been verified without explicitly modeling timing requirements. However, it is possible to transform timed $\mu$CRL to untimed $\mu$CRL without affecting the behavior of the system; a technique to do so is described in \cite{reniers02completenesstimed}, where it is used to construct a completeness proof.  In this chapter, we discuss an approach to transform timed mCRL2 processes to untimed mCRL2 processes illustrating similar behavior. This allows us to investigate the influence of time on the system, while still being able to use the mCRL2 toolset.
+
+\section{Theory of timed and untimed processes}
+
+First of all, we introduce $\TTT$, which is our time domain. The only requirements on $\TTT$ are that it has a total ordering, referred to as $\leq$, and a least element which we will refer to as $0$. We will introduce a timed linear process equation, or TLPE, which is the format we will use as basic `building blocks', as it is possible to transform any given mCRL2 specification to this basic format using a process known as \emph{lineralization}. However, this transformation is a separate research subject, which is discussed in detail in \cite{usenko02linearalizationmcrl}.
+\\
+\begin{definition}[Timed Linear Process Equation] \label{def:lpe}
+A timed linear process equation (TLPE) is a process of the following form:
+\begin{displaymath}
+X(d:D) = \sum_{i \in I, e_i: E_i} c_i(d,e_i) \rightarrow \alpha_i(d, e_i) \at t_i(d, e_i) \cdot X(g_i(d, e_i))
+\end{displaymath}
+Where $D$ is some set representing the data parameters, $I$ is a finite index set and for all $i \in I$:
+\begin{itemize}
+\item $c_i(d,e_i)$ is a condition
+\item $\alpha_i(d, e_i)$ is a multi-action $a_i^1(f_i^1(d, e_i)) \comm \dots \comm a_i^{n_i}(f_i^{n_i}(d, e_i))$, where $f_j^k(d, e_j)$ give the parameters of action $a_j^k$, for all $1 \leq k \leq n_i$.
+\item $t_i: D \times E_i \rightarrow \TTT$ are the timestamps of multi-action $\alpha_i(d, e_i)$
+\item $g_i: D \times E_i \rightarrow D$ defines process parameters in the next state.
+\end{itemize}
+\end{definition}
+
+An important aspect of a TLPE is that the parallel composition of two TLPE's can always be reduced to the shape of a TLPE, as shown in Theorem \ref{theorem:xparallely}.
+\\
+\begin{theorem} \label{theorem:xparallely} For TLPE's $X$, $Y$ and $Z$ where $Z(d_i, d_j) = X(d_i) \parallel Y(d_j)$, it holds that: \\
+\begin{tabular}{lll}
+$Z(d_i, d_j)$ & = & $\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$ \\
+& & $\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot Z(g_i(d_i,e_i), d_j)~+$ \\
+& & $\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_j(d_j,e_j) < t_i(d_i,e_i) \rightarrow$ \\
+& & $\alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot Z(d_i, g_j(d_j,e_j))~+$ \\
+& & $\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) = t_j(d_j,e_j) \rightarrow$ \\
+& & $\alpha_i(d_i,e_i) \comm \alpha_j(d_j,e_j) \at t_i(d_i,e_i) \cdot Z(g_i(d_i,e_i), g_j(d_j,e_j))~+$ \\
+& & $\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow$ \\
+& & $\delta \at min(t_i(d_i,e_i), t_j(d_j,e_j)) \cdot Z(d_i,d_j)$ \\
+\end{tabular}
+\end{theorem}
+\begin{proof} Refer to Appendix \ref{apx:proofs} \end{proof}
+
+Additionally, we define a deadlock saturated linear process as follows:
+\\
+\begin{definition}[Deadlock Saturated Timed Linear Process Equation]
+A deadlock saturated timed linear process equation (DS-TLPE) is a process of the following form:
+
+\begin{tabular}{lcl}
+$X(d:D)$ & $=$ & $\sum_{i \in I, e_i: E_i} c_i(d,e_i) \rightarrow \alpha_i(d, e_i) \at t_i(d, e_i) \cdot X(g_i(d, e_i))~+$ \\
+         &     & $\sum_{u: \TTT} c_i(d,e_i) \land u < t_i(d, e_i) \rightarrow \delta \at u \cdot X(g_i(d, e_i))$ \\
+\end{tabular}
+
+Where $D$, $I$, $\alpha_i$, $c_i$, $t_i$ and $g_i$ are defined similar to Definition \ref{def:lpe}
+\end{definition}
+
+We note that it is possible to transform any TLPE to a DS-TLPE and the other way around, as a result of Theorem \ref{thm:tlpe2dstlpe}.
+\\
+\begin{theorem} \label{thm:tlpe2dstlpe} For any TLPE $X$, there exists a DS-TLPE $Y$ such that $X = Y$. \end{theorem}
+\begin{proof} Refer to Appendix \ref{apx:proofs} \end{proof}
+
+ The reason we distinguish between a TLPE and a DS-TLPE is because we can transform the latter directly to an untimed specification while preserving the process behavior, provided that the process is \emph{welltimed}. The intuition of welltimedness arises by the following observation: in a timed environment the identity $a \at 3 \cdot (b \at 2 + c \at 4) = a \at 3 \cdot c \at 4$ holds: if an action $a$ has been performed at time interval $3$, it impossible to subsequently perform a $b$ action at time interval $2$ without grossly violating the laws of physics. However, if we were to transform this expression to a TLPE, we obtain $a(3) \cdot (b(2) + c(4))$, which is not equal to $a(3) \cdot c(4)$. In order to prevent this unwanted behavior, we restrict the TLPE to a form where the first expression cannot occur. More formally, this is defined as follows:
+\\
+\begin{definition}
+A TLPE $X(d:D)$ is welltimed if and only if
+\begin{displaymath} \forall_{i \in I,j \in I,e_i: E_i,e_j: E_j} c_i(d,e_i) \land c_j(g_i(d, e_i), e_j) \rightarrow t_i(d,e_i) < t_j(g_i(d, e_i), e_j) \end{displaymath} 
+\end{definition}
+
+Finally, we define a time-free linear process equation (TF-LPE) as follows:
+\\
+\begin{definition}[Time-free Linear Process Equation]
+A time-free linear process equation (TF-LPE) is a process of the following form:
+\begin{displaymath}
+X(d:D) = \sum_{i \in I, e_i: E_i} c_i(d,e_i) \rightarrow \alpha_i(d, e_i, t_i(d,e_i)) \cdot X(g_i(d, e_i))~+
+\sum_{j \in J, e_j: E_j} c_j(d,e_j) \rightarrow \Delta(t_j(d,e_j))
+\end{displaymath}
+Where $D$, $I$, $\alpha_i$, $c_i$, $t_i$ and $g_i$ are defined similar to Definition \ref{def:lpe}. $J$ is a finite index set and for all $j \in J$: 
+\begin{itemize}
+\item $c_j(d,e_j)$ is a condition
+\item $\Delta: \TTT$ is an action representing the deadlock $\delta \at t$.
+\item $t_j: D \times E_i \rightarrow \TTT$ are the timestamps of action $\Delta$
+\end{itemize}
+\end{definition}
+
+By using the results of \cite{reniers02completenesstimed}, it is possible to transform a welltimed DS-TLPE to a TF-LPE. To fulfill this goal, a tool called LeMans has been developed. This tool will be described in the next section.
+
+\section{Introducing the LeMans tool}
+\label{sec:lemansintro}
+
+Using the theory outlined in the previous chapter, we have developed a tool called LeMans. The purpose of this tool is to transform a welltimed TLPE to a TF-LPE, which can then be used in the mCRL2 toolset. An input must be in the following shape:
+
+\begin{tabular}{lcl}
+proc & & $P(\dots)~=~\dots$ \\
+$\dots$ & & \\
+proc & & $Z(\dots)~=~\dots$ \\
+     & & \\
+init & & $P(\dots) \parallel \dots \parallel Z(\dots)$ \\
+\end{tabular}
+
+Which results in the following output:
+
+\begin{tabular}{lcl}
+proc & & $P(\overrightarrow{a})~=~\dots$ \\
+init & & $P(\mathcal{I}_P)$ \\
+\end{tabular}
+
+Where $P$ is a TF-LPE. This is implemented using the following sequence of actions:
+
+\begin{enumerate}
+\item One or more TLPE's are read from the standard input \\
+We will refer to the right hand side of process $P$ as $\mathcal{T}_P$.
+\item A process initializer of the form $\textbf{init}~P(\dots) \parallel \dots \parallel Z(\dots)$ is read from the standard input.
+We will refer to the process initializer as $\mathcal{I}$.
+\item Arguments of $\mathcal{I}$ are determined. \\
+Since $\mathcal{I}$ consists of multiple processes in parallel, the initialization parameters of all these processes must be combined to create a suitable initializer for the to-be-constructed TLPE. These parameters will be referred to as $\overrightarrow{a}$.
+\item The right hand sides of the TLPE processes are filled out in $\mathcal{I}$ \\
+$\mathcal{I}$ becomes $\mathcal{T}_P(\dots) \parallel \dots \parallel \mathcal{T}_Z(\dots)$.
+\item By repeatably applying Theorem \ref{theorem:xparallely}, a single TLPE $P$ is obtained, which is derivably equal to $\mathcal{I}$.
+\item The TLPE $P$ is transformed to a DS-TLPE by introducing extra summands \\
+This can be done automatically as a result of Theorem \ref{thm:tlpe2dstlpe}.
+\item Time-free abstraction is applied to $P$ \\
+This can be done automatically by applying \cite[Definition 4.4]{reniers02completenesstimed}.
+\item SUM1-elimination is applied to $P$ \\
+Any expression of the form $\sum_{v} X$ where $v$ does not appear in $X$ will be rewritten to $X$. This is necessary to avoid unbounded expansion in the \texttt{lps2lts} tool
+\end{enumerate}
+
+The result of the LeMans tool is a mCRL2 specification suitable for use in the toolset.
+
+\section{Results on leader election}
+\label{sec:timedle}
+
+The LeMans tool has been applied on the following specification, which is the leader election algorithm as presented in Section \ref{algo:leaderelection}. We define $\mathcal{E} = 2$ as the amount of time it may take to transmit a single message, and $\Omega = 10$ as the amount of time the leader election algorithm waits after the last incoming message before terminating.
+
+\begin{tabular}{lcl}
+proc & & $P(id,lid,s:\mathds{N},t,u:\TTT,done:\mathds{B}) = $ \\
+     & & $\sum_{v:\TTT}~0 < v \leq \mathcal{E} \land s < 4 \land neighbor(id,s) \neq id \rightarrow sendID(neighbor(id,s),lid) \at (t+v) \cdot$ \\
+     & & $\hspace{1cm} P(id,lid,s+1,t+v,u,done)~+$ \\
+     & & $\sum_{v:\TTT}~0 < v \leq \mathcal{E} \land s < 4 \land neighbor(id,s)=id \rightarrow  intern \at (t+v) \cdot$ \\
+     & & $\hspace{1cm} P(id,lid,s+1,t+v,u,done)~+$ \\
+     & & $\sum_{v:\TTT,lid':\mathds{N}}~0 < v \leq \mathcal{E} \land lid'<lid \rightarrow recvID(id,lid') \at (t+v) \cdot$ \\
+     & & $\hspace{1cm} P(id,lid',0,t+v,t+v+\Omega,done)~+$ \\
+     & & $\sum_{v:\TTT,lid':\mathds{N}}~0 < v \leq \mathcal{E} \land lid' \geq lid \rightarrow recvID(id,lid') \at (t+v) \cdot  P(id,lid,s,t+v,u,done)~+$ \\
+     & & $\sum_{v:\TTT}~s=4 \land id=lid \land 0 < v \leq \mathcal{E} \land \lnot done \rightarrow leader(id) \at (u+v) \cdot P(id,lid,s,u+v,u,true)~+$ \\
+     & & $\sum_{v:\TTT}~s=4 \land id \neq lid \land 0 < v \leq \mathcal{E} \land \lnot done \rightarrow normal(id) \at (u+v) \cdot P(id,lid,s,u+v,u,true)$ \\
+     & & \\
+init & & $P(0,0,0,0,\Omega,false) \parallel P(1,1,0,0,\Omega,false) \parallel$ \\
+     & & $P(2,2,0,0,\Omega,false) \parallel P(3,3,0,0,\Omega,false)$ \\
+\end{tabular}
+
+Process $P$ is obviously a TLPE. It is not immediately obvious that process $P$ is welltimed. We support the claim of welltimedness by claiming that for every action that is performed at some time interval $v$, the $t$ parameter of the process is updated to $v$. The end result is that time will always increase in the process, which has the result that process $P$ is welltimed as claimed.
+
+Using the LeMans tool on this input results in TF-LPE output, which can be used as mCRL2 toolset input. However, trying to process the TF-LPE (which consists of roughly 140.000 summands) was not possible at the time of writing: the \texttt{mcrl22lps} tool does not appear to terminate while linearalising the TF-LPE input\footnote{This issue has been reported to the mCRL2 developers, but as of writing, no solution was available}. This has prevented us from doing any in-depth analysis on the now untimed mCRL2 models.

@@ -1,0 +1,132 @@
+\chapter{General notes on the model}
+\label{sec:generalnotes}
+
+As outlined in the overview in Chapter \ref{sec:overview}, each node can only interact with four adjacent neighboring nodes. However, this has to be made explicit in our model: we need to define actions to interact between such nodes. This means we need some way to ensure whenever nodes interact, they can only do so with adjacent nodes and not just any node in the network. First of all, we define the size of the network as $\mDD \times \mDD$. In order to make this easier, we sequentially number the nodes, from $0 \dots N - 1$, where $N = \mDD^2$, the total number of nodes in the network. The idea is, that if we simply number nodes sequentially, we can determine whether nodes can communicate with each other based simply on their number. Note that we \emph{cannot} use node coordinates to determine whether this node can reach another node, since these coordinates are determined by an algorithm later on. Thus, the only purpose of the node number is to model the relationship between a node and its neighbors; it is different from the node's internal identification number. More on this distinction will be discussed later.
+
+\begin{figure}[ht]
+ \centering
+ \begin{nodefigure}
+  \nodegrid{3}{0}{0}{0/2/ 0////, 1/2/ 1////, 2/2/ 2////,
+                     0/1/ 3////, 1/1/ 4/$0$/$1$/$2$/$3$, 2/1/ 5////,
+                     0/0/ 6////, 1/0/ 7////, 2/0/ 8////}
+ \end{nodefigure}
+ \caption{\label{fig:gensetup} General setup of unrotated nodes in a $3 \times 3$ grid, thus $\mDD = 3$}
+\end{figure}
+
+Let us consider node number $4$ in the setup in Figure \ref{fig:gensetup}: this node can reach node number $1$ using direction $0$, node number $5$ using direction $1$, node number $7$ using direction $2$ and finally node number $3$ using direction $3$. We observe that the following relationship between node number $n$ and direction $d$ holds:
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Direction} & \textbf{Node number} \\
+\hline
+$0$ & $n - \mDD$ \\
+\hline
+$1$ & $n + 1$ \\
+\hline
+$2$ & $n + \mDD$ \\
+\hline
+$3$ & $n - 1$ \\
+\hline
+\end{tabular}
+\end{center}
+
+However, just this relation is not enough: we have to explicitly disallow, for example node number $2$ communicating in direction $1$. By the above table, node number $2$ is able to communicate with node number $3$, which is not possible in reality. Therefore, we introduce extra constraints: nodes at the left edge of the grid cannot communicate in direction $3$, and likewise for nodes at the right edge in direction $1$, the top edge in direction $0$ and the bottom edge with $2$. Based on this specification, we define $neighbornum(n,d)$, which returns the node number of node number $n$'s neighbor in direction $d$ as:
+
+\begin{displaymath}
+neighbornum(n,d) = \left\{\begin{array}{rcl}
+n - \mDD & \mbox{if} & d = 0 \land y > 0\\
+n + 1   & \mbox{if} & d = 1 \land x < \mDD - 1\\
+n + \mDD & \mbox{if} & d = 2 \land y < \mDD - 1\\
+n - 1   & \mbox{if} & d = 3 \land x > 0\\
+\end{array}\right.
+\end{displaymath}
+\begin{displaymath}
+\begin{array}{rl}
+\mbox{where} & x = n \mmod \mDD \\
+             & y = n \mdiv \mDD \\
+\end{array}
+\end{displaymath}
+
+Note that there are cases when we deliberately left $neighbornum$ unspecified: if such a condition arises, the node in question simply does not have a neighbor in the given direction.
+
+Using this $neighbornum$ function, we can discuss how we send messages between nodes. Obviously, we cannot just tell messages to arrive - so we have to introduce actions for this purpose. To this end, each phase uses a $\TT{send(num,\dots)}$ action, which sends the specified parameters to a node number $num$ whereas an action $\TT{recv(num,\dots)}$ receives such a message. These actions are combined using communication action $\TT{comm(num,\dots)}$ - thus, if a process wishes to perform a \TT{send} action, there must be another process capable of doing a \TT{recv} action with identical parameters. However, this has an important consequence: since it is a communication action, every $\TT{send(num,\dots)}$ must have a corresponding $\TT{recv(num,\dots)}$ action in another process - which means we cannot simulate sending messages to nodes that do not exist, since such actions will be blocked. In reality, the hardware will just put signals on pins that are not connected to anything and since this does not change the internal state, this makes no difference.
+
+If a message needs to be broadcast to all four adjacent nodes, it is safe to assume that this message is sent in a specific order: that is, the message will first be sent to direction $0$, then to direction $1$, etc. Thus, we introduce a process variable $s$ which contains the number of the direction we need to send to: if $s = 0$, we have to send to direction $0$, so once that has been accomplished, we increment $s$ as we now need to send to direction $1$. We repeat this for all directions, so if $s = 4$, this indicates we have sent to all directions. Should we subsequently need to send messages again, we can simply set $s = 0$.
+
+Why do we need the distinction above? One may expect that just using four consecutive \TT{send} actions will have the same effect, and this is true if a node has four neighbors. If it does not, at least one of the \TT{send} actions will be blocked, as there is no corresponding \TT{recv} action. Clearly, this is not what we want, so we introduce an \TT{intern} action, which simulates putting a signal on a pin which will not be received. The result is that in our model, if a message needs to be sent to direction $s$, there are two possibilities: if there is indeed a neighbor at that direction, we use the \TT{send} action. If there is no neighbor, we use the \TT{intern} action to simulate that the node is sending a message but nobody receives it. Conveniently, we can re-use this notation in order to model the loss of messages, as we shall discuss later.
+
+As stated in Section \ref{algo:leaderelection}, the node with the lowest unique identifier should become leader. To this end, we introduce a value $\mLL$, which is the number of the node that obtains identification number $0$ - and since all identification numbers are natural numbers, this is the lowest identification number and thus the leader node. We need to define a function to map a node's number to an unique identifier in such a way that the node which number equals $\mLL$ will obtain id $0$, whereas all other nodes will obtain unique id's that are greater than $0$; this is desirable as we want to be able to check the model for boundary conditions: we are not only interested in the case where the node with the lowest identification number is at the top-left of the network, but also what happens when we place it somewhere in the center of our network. To this end, we define a function $mapNodeId(num)$, which maps node number $num$ to a node $id$ in such a way that $mapNodeId(\mLL) = 0$ and all other numbers are distinct and greater than $0$. We use declaration $mapNodeId(num) = (num - \mLL) \mmod \mDD^2$, as it satisfies the specification above.
+
+Since the required \TT{send}, \TT{recv} and \TT{comm} actions are different in each phase, we will not discuss their declarations here. However, the grid-positioning is always needed throughout the algorithms, so the corresponding mCRL2 declarations will be discussed now:
+
+\begin{codeverb}
+sort    Direction = Nat;
+        Coord = struct coord(x:Int,y:Int);
+\end{codeverb}
+
+The first line declares the $Direction$ type, which is just a natural number, as it is in the previous discussions. The reason we declare it as a new type is to make it clearer in the models when we are dealing with a direction. The next line is the declaration of the $Coord$ type - a single $Coord$ is a combination of two integer values, the first being the $x$ coordinate and the latter being the $y$ coordinate.
+
+\begin{codeverb}
+map     DIM: Pos;
+eqn     DIM = 3;
+
+sort    RList = List(Nat);
+map     RotationList: RList;
+eqn     RotationList = [ 0, 3, 2, 1, 1, 0, 3, 0, 2 ];
+\end{codeverb}
+
+Since we always need the grid dimensions, we introduce a function $DIM$ which simply returns $\mDD$, the dimensions of the grid - in this case, a $3 \times 3$ grid. The same holds for the rotations: we use a list $RotationList$ containing $\mDD^2$ natural numbers. Each number denotes the number of right-rotations of the specified node. Thus, using the definition of $RotationList$ as above, node number $1$ would be rotated $3 * 90 \degree = 270 \degree$. The reasoning of using such a list is that once a node $n$ sends a message to direction $d$, we can use this list to transform direction $d$ based on the rotation of node $n$. If we introduced a parameter for each node indicating how much it is rotated, a node has information about its rotation. However, our goal is to introduction rotation as a malign force of nature: a node does not know whether it is rotated or how much, it just is, and it is up to the algorithms to decide how much this rotation actually is, as it is not possible for a node to circumvent the rotation.
+
+In order to illustrate how this works, we first introduce the rotate-left and rotate-right functions $rl$ and $rr$ as discussed in Chapter \ref{sec:opcoorddet}:
+
+\begin{codeverb}
+map     rr: Direction#Int -> Nat;
+var     d:Direction;
+        n:Int;
+eqn     rr(d,n) = (d+n) mod 4;
+
+map     rl: Direction#Direction -> Nat;
+var     d,e: Direction;
+eqn     rl(d,e) = (d-e) mod 4;
+\end{codeverb}
+
+Then, using the $RotationList$ and the $rr$ function, we can introduce the concept of rotated nodes in our model: whenever node number $num$ intends to send to direction $d$, we should use output direction $rr(d,RotationList.num)$. So subsequently, the number of the node receiving the message is $neighbornum(num,rr(d,RotationList.num))$. This means the rotation of a node will always apply, and more importantly, this rotation is fixed.
+
+\begin{codeverb}
+map     neighbornum: Int#Direction->Int;
+var     n:Int;
+eqn     neighbornum(n,0) = if(n div DIM>0,n-DIM,n);
+        neighbornum(n,1) = if(n mod DIM<DIM-1,n+1,n);
+        neighbornum(n,2) = if(n div DIM<DIM-1,n+DIM,n);
+        neighbornum(n,3) = if(n mod DIM>0,n-1,n);
+\end{codeverb}
+
+We define the $neighbornum$ function as illustrated previously, with one major difference. Previously, if there was no neighbor for node $n$ in direction $d$, we would leave $neighbornum(n,d)$ unspecified. However, in our models, we need to determine whether there is such a neighbor as we need to distinguish whether to use a \TT{send} or \TT{intern} action. Thus, we introduce an $if$ statement: if node $n$ has a neighbor in direction $d$, $neighbornum(n,d$) will return this neighbor. If there is no such neighbor, $neighbornum(n,d) = n$ .
+
+\begin{codeverb}
+map     move: Direction#Coord->Coord;
+\end{codeverb}
+
+We declare the $move$ function, which takes direction $d$ and coordinate $c$. The goal is to return coordinate $c$ moved one position in direction $d$, which is equivalent to $\Delta(c,d)$ as illustrated previously.
+
+\begin{codeverb}
+var     x,y: Int;
+eqn     move(0,coord(x,y)) = coord(x,y+1);
+        move(1,coord(x,y)) = coord(x+1,y);
+        move(2,coord(x,y)) = coord(x,y-1);
+        move(3,coord(x,y)) = coord(x-1,y);
+\end{codeverb}
+
+We introduce two dummy integer variables $x$ and $y$. For each direction, we specify the return value of the function, similar to how this is done in Figure \ref{fig:relcoords} and the corresponding table.
+
+\begin{codeverb}
+map     LEADERNUM: Pos;
+eqn     LEADERNUM = 5;
+
+map     mapNodeId : Nat -> Nat;
+var     n:Nat;
+eqn     mapNodeId(n) = (n - LEADERNUM) mod DIM*DIM;
+\end{codeverb}
+
+We have to specify which node will become the leader node. To this end, $LEADERNUM$ is equal to $\mLL$, the number of the node that should become leader. Finally, we define the $mapNodeId$ according to the definition given previously.

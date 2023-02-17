@@ -1,0 +1,361 @@
+\chapter{Complete mCRL2 source file}
+\label{apx:source}
+
+In this appendix, the entire mCRL2 source file as used in the analysis of the complete system in Chapter \ref{ch:overallsystem} is described. Subsequent alterations on this model are discussed in the respective section numbers of Chapter \ref{ch:overallsystem}.
+
+\section*{system.mcrl2}
+
+\begin{Verbatim}[frame=lines,numbers=left,fontfamily=courier,fontsize=\footnotesize]
+sort Direction = Nat;
+     Coord = struct coord(x:Int,y:Int);
+
+map  DIM: Pos;
+     LEADERNUM: Nat;
+eqn  DIM = 2;
+     LEADERNUM = 0;
+
+sort RList = List(Nat);
+map  RotationList: RList;
+eqn  RotationList = [ 0, 1, 2, 3 ];
+
+map  mapNodeId : Nat -> Nat;
+var  n:Nat;
+eqn  mapNodeId(n) = (n - LEADERNUM) mod DIM*DIM;
+
+map  makeMinCoords, makeMaxCoords: Coord;
+var  a, b: Int;
+eqn  makeMinCoords = coord(-a, -((DIM-1)-b))
+     whr a = (LEADERNUM mod DIM),
+         b = (LEADERNUM div DIM) end;
+     makeMaxCoords = coord((DIM-1)-a, b)
+     whr a = (LEADERNUM mod DIM),
+         b = (LEADERNUM div DIM) end;
+
+map  maxCoord : Coord#Coord -> Coord;
+     minCoord : Coord#Coord -> Coord;
+var  x1,y1,x2,y2: Int;
+eqn  maxCoord(coord(x1,y1),coord(x2,y2)) = coord(max(x1,x2),max(y1,y2));
+     minCoord(coord(x1,y1),coord(x2,y2)) = coord(min(x1,x2),min(y1,y2));
+
+map  move: Direction#Coord->Coord;
+var  x,y: Int;
+eqn  move(0,coord(x,y)) = coord(x  ,y+1);
+     move(1,coord(x,y)) = coord(x+1,y);
+     move(2,coord(x,y)) = coord(x  ,y-1);
+     move(3,coord(x,y)) = coord(x-1,y);
+
+map  calcCoord : Int -> Coord;
+var  num:Int;
+eqn  calcCoord(num) =
+             coord(num mod DIM - LEADERNUM mod DIM,
+                   LEADERNUM div DIM - num div DIM);
+
+map  rr: Direction#Int -> Nat;
+var  d:Direction;
+     n:Int;
+eqn  rr(d,n) = (n+d) mod 4;
+map  rd: Direction -> Direction;
+var  d: Direction;
+eqn  rd(d) = (d + 2) mod 4;
+
+map  rl: Direction#Int -> Nat;
+var  d: Direction;
+     e: Int;
+eqn  rl(d,e) = (d-e) mod 4;
+
+map  neighbornum: Int#Direction->Int;
+var  n:Int;
+eqn  neighbornum(n,0) = if(n div DIM>0,n-DIM,n);
+     neighbornum(n,1) = if(n mod DIM<DIM-1,n+1,n);
+     neighbornum(n,2) = if(n div DIM<DIM-1,n+DIM,n);
+     neighbornum(n,3) = if(n mod DIM>0,n-1,n);
+
+map  diffCoord: Coord#Coord -> Coord;
+var  x1,y1,x2,y2:Int;
+eqn  diffCoord(coord(x1,y1),coord(x2,y2)) = coord(x1-x2,y2-y1);
+
+act  % phase 1
+     becomeLeader: Int;
+     gotLeader,
+     monLeader,
+     commLeader: Int#Int#Bool;       % num,leaderid,newleader
+     sendID,
+     recvID,
+     commID: Int#Int;                % num,id
+
+     % phase 2
+     sendCoord,
+     recvCoord,
+     commCoord: Int#Coord#Direction#Direction;
+     reportCoord,
+     ackCoord,
+     coordAction: Int#Nat#Coord;
+
+     % phase 3
+     sendMinMax,
+     recvMinMax,
+     commMinMax: Int#Int#Coord#Coord; % num,lid,min,max
+     reportMinMax,
+     checkMinMax,
+     commMinMax2: Int#Coord#Coord; % num,min,max
+
+     % phase 4
+     sendUpdate,
+     recvUpdate,
+     commUpdate: Int#Int#Nat; % num,leaderid,state
+     updateLight: Int#Nat; % num,newstate
+     timer;
+
+     % phase transitions
+     phtry, phack, phcomm: Nat;
+     intern,
+     error;
+     reset;
+
+     % reset actions
+     sendReset,
+     recvReset,
+     commReset: Int#Nat;
+     sendMonReset,
+     recvMonReset,
+     commMonReset;
+
+proc Smartpixellaunch(num:Nat) =
+      Smartpixelinit(num,0);
+     Smartpixelinit(num,nrc:Nat) =
+      Smartpixel(num,mapNodeId(num),1,0,4,4,4,4,false,coord(0,0),coord(0,0),coord(0,0),
+       0,0,nrc);
+     Smartpixelreset(num,nrc:Nat) =
+      Smartpixel(num,mapNodeId(num),0,0,4,4,4,0,false,coord(0,0),coord(0,0),coord(0,0),
+       0,0,nrc);
+
+     Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr:Nat,leader:Bool,log,mincd,maxcd:Coord,
+       f,r,rc:Nat) =
+      
+     %%%% PHASE 1: LEADER ELECTION %%%%
+
+     % if we haven't sent our ID in a given direction, do so
+     (ph==1&&sl<4&&(neighbornum(num,rr(sl,RotationList.num))==num)) ->
+            intern .
+            Smartpixel(num,leader_id,ph,sl+1,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+     (ph==1&&sl<4&&(neighbornum(num,rr(sl,RotationList.num))!=num)) ->
+            sendID(neighbornum(num,rr(sl,RotationList.num)),leader_id) .
+            Smartpixel(num,leader_id,ph,sl+1,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+
+     % if we receive a lower ID than our leader ID, honor it - and retransmit it to the
+     % connected nodes
+     sum rid:Nat . (ph==1&&rid<leader_id) -> recvID(num,rid) .
+            gotLeader(num,rid,mapNodeId(num)==leader_id) .
+            Smartpixel(num,rid,ph,0,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+     % if we receiver our own ID or a higher ID than our leader id, do nothing
+     sum rid:Nat . (ph==1&&rid>=leader_id) ->  recvID(num,rid) .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+     % we are the leader - make the initial transmission
+     (ph==1&&sl==4&&mapNodeId(num)==leader_id) -> phtry(1) . becomeLeader(num) .
+            Smartpixel(num,leader_id,2,sl,0,ss,su,sr,true,log,mincd,maxcd,f,r,rc) +
+     % we are not the leader - do not send
+     (ph==1&&sl==4&&mapNodeId(num)!=leader_id) -> phtry(1) .
+            Smartpixel(num,leader_id,2,sl,sc,ss,su,sr,false,log,mincd,maxcd,f,r,rc) +
+
+     %%%% PHASE 2: COORDINATE DETERMINATION %%%%
+
+     % if we haven't sent position information in a given direction, do so
+     (ph==2&&sc<4&&neighbornum(num,rr(sc,RotationList.num))==num) -> intern .
+            Smartpixel(num,leader_id,ph,sl,sc+1,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+     sum d':Direction.(ph==2&&sc<4&&neighbornum(num,rr(sc,RotationList.num))!=num) ->
+            sendCoord(neighbornum(num,rr(sc,RotationList.num)),move(rr(sc,r),log),
+                      rr(rd(sc),r),d') .
+            Smartpixel(num,leader_id,ph,sl,sc+1,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+
+     % if we receive a new logical coordinates, believe them and update accordingly
+     % - but only if we didn't know our position in the first place
+     sum c:Coord,d,d':Direction . (ph==2&&log==coord(0,0)&&!leader&&
+                                   d'==rl(d,RotationList.num)) ->
+            recvCoord(num,c,d,d') . reportCoord(num,rl(d,d'),c) .
+            Smartpixel(num,leader_id,ph,sl,0,ss,su,sr,leader,c,c,c,f,rl(d,d'),rc) +
+ 
+     % if we receive any new position which conflicts with what we already have,
+     % initiate a reset action
+     sum c:Coord,d,d':Direction . (ph==2&&c!=log&&(log!=coord(0,0)||leader)&&
+                                   0<=d'&&d'<=3) ->
+            recvCoord(num,c,d,d') . sendMonReset . Smartpixelreset(num,rc) +
+
+     % if we receive a position and the coordinates/direction is ok, ignore it
+     sum d,d':Direction . (ph==2&&(log!=coord(0,0)||leader)&&
+                           d'==rl(d,RotationList.num)&&r==rl(d,d')) ->
+            recvCoord(num,log,d,d') .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+
+     % if we receive a position and the coordinates are ok but the direction is not, reset
+     sum d,d':Direction . (ph==2&&(log!=coord(0,0)||leader)&&d'==rl(d,RotationList.num)&&
+                           r!=rl(d,d')) ->
+            recvCoord(num,log,d,d') . sendMonReset . Smartpixelreset(num,rc) +
+
+     (ph==2&&sc==4) -> phtry(2) .
+            Smartpixel(num,leader_id,3,sl,sc,if(leader,0,ss),su,sr,leader,log,log,log,f,
+                       r,rc) +
+
+     %%%% PHASE 3: GRID SIZE DETERMINATION %%%%
+     % if we haven't sent min/max information in a given direction, do so
+     (ph==3&&ss<4&&neighbornum(num,rr(ss,RotationList.num))==num) -> intern .
+            Smartpixel(num,leader_id,ph,sl,sc,ss+1,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+     (ph==3&&ss<4&&neighbornum(num,rr(ss,RotationList.num))!=num) ->
+            sendMinMax(neighbornum(num,rr(ss,RotationList.num)),leader_id,mincd,maxcd) .
+            Smartpixel(num,leader_id,ph,sl,sc,ss+1,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+
+     % if we receive a new min/max coordinates from a higher leader id, this is
+     % wrong, so initiate a reset action
+     sum n:Nat,cmin,cmax:Coord . (ph==3&&n>leader_id) -> recvMinMax(num,n,cmin,cmax) .
+             sendMonReset . Smartpixelreset(num,rc) +
+
+     % if we receive new min/max coordinates, believe them
+     sum cmin,cmax:Coord,lid:Nat . (ph==3&&lid<=leader_id&&
+                   (minCoord(cmin,mincd)!=mincd)||(maxCoord(cmax,maxcd)!=maxcd)) ->
+            recvMinMax(num,lid,cmin,cmax) .
+            reportMinMax(num,minCoord(cmin,mincd),maxCoord(cmax,maxcd)) .
+            Smartpixel(num,lid,ph,sl,sc,0,su,sr,leader,log,
+                    minCoord(cmin,mincd),maxCoord(cmax,maxcd),f,r,rc) +
+
+     % if we receive uninteresting new min/max coordinates, ignore them
+     % but update our leader id
+     sum cmin,cmax:Coord,lid:Nat . (ph==3&&lid<=leader_id&&
+               (minCoord(cmin,mincd)==mincd)&&(maxCoord(cmax,maxcd)==maxcd)) ->
+            recvMinMax(num,lid,cmin,cmax) .
+            Smartpixel(num,lid,ph,sl,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+
+     (ph==3&&ss==4) -> phtry(3) . updateLight(num,0) .
+            Smartpixel(num,leader_id,4,sl,sc,ss,su,sr,leader,log,log,log,f,r,rc) +
+
+     %%%% PHASE 4: SHOWTIME %%%%
+     (ph==4&&su<4&&neighbornum(num,rr(su,RotationList.num))==num) -> intern .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su+1,sr,leader,log,mincd,maxcd,f,r,rc) +
+     (ph==4&&su<4&&neighbornum(num,rr(su,RotationList.num))!=num) ->
+            sendUpdate(neighbornum(num,rr(su,RotationList.num)),
+                       if(leader,mapNodeId(num),leader_id),f) .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su+1,sr,leader,log,mincd,maxcd,f,r,rc) +
+
+     % if we receive a new min/max coordinates from a higher different leader id, this
+     % is wrong, so initiate a reset action
+     sum a:Int,b:Nat . (ph==4&&a>leader_id) -> recvUpdate(num,a,b) . sendMonReset .
+            Smartpixelreset(num,rc) +
+
+     % if we have an update, honor it
+     sum n,a:Nat . (ph==4&&n<=leader_id&&a!=f) -> recvUpdate(num,n,a) .
+                        updateLight(num,a) .
+                        Smartpixel(num,n,ph,sl,sc,ss,0,sr,leader,log,mincd,maxcd,a,r,rc) +
+
+     % if we have an update we already know, ignore it - but honor a possibly lower
+     % leader id
+     sum n:Nat.(ph==4&&n<=leader_id) -> recvUpdate(num,n,f) .
+            Smartpixel(num,n,ph,sl,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+
+     % if we act as leader, initiate periodic updates
+     (ph==4&&leader) -> timer .
+            updateLight(num,(f+1) mod 2) .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,0,sr,leader,log,mincd,maxcd,
+                       (f+1) mod 2,r,rc) +
+
+     % ignore out of phase-messages
+     sum n:Int. (ph!=1) -> recvID(num,n) .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+     sum c:Coord,d,d':Direction . (ph!=2&&0<=d'&&d'<=3) -> recvCoord(num,c,d,d') .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+     sum n:Int,c,d:Coord.(ph!=3) -> recvMinMax(num,n,c,d) .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+     sum n:Int,a:Nat.(ph!=4) -> recvUpdate(num,n,a) .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+
+     % if reset, reset!
+     sum x:Nat.(ph!=0&&x<rc) -> recvReset(num,x) .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+     sum x:Nat.(ph!=0&&x>=rc) -> recvReset(num,x) .
+            Smartpixelreset(num,x) +
+     sum x:Nat.(ph==0) -> recvReset(num,x) .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr,leader,log,mincd,maxcd,f,r,rc) +
+
+     (ph==0&&sr<4&&(neighbornum(num,rr(sr,RotationList.num))==num)) -> intern .
+            Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr+1,leader,log,mincd,maxcd,f,r,rc) +
+     (ph==0&&sr<4&&(neighbornum(num,rr(sr,RotationList.num))!=num)) ->
+             sendReset(neighbornum(num,rr(sr,RotationList.num)),rc) .
+             Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr+1,leader,log,mincd,maxcd,f,r,rc) +
+     (ph==0&&sr==4) -> intern . Smartpixelinit(num,(rc+1) mod 10);
+
+     MonitorInit = 
+             Monitor(DIM*DIM-1,DIM*DIM-1,DIM*DIM);
+
+     Monitor(n,m,o:Int) =
+      % phase 1
+      sum a,b:Int.monLeader(a,b,true).Monitor(n-1,m,o) +
+      sum a,b:Int.monLeader(a,b,false).Monitor(n,m,o) +
+      % phase 2
+      sum num:Nat.ackCoord(num,RotationList.num,calcCoord(num)) . Monitor(n,m-1,o) +
+      sum num,r:Nat,c:Coord. (c!=calcCoord(num)||r!=RotationList.num) ->
+             ackCoord(num,r,c) . error +
+      % phase 3
+      sum id:Nat,cmin,cmax:Coord . ((x(cmax)-x(cmin)+1 == DIM) &&
+                             (y(cmax)-y(cmin)+1 == DIM) &&
+                             ((cmin!=makeMinCoords)||(cmax!=makeMaxCoords))) ->
+                            checkMinMax(id,cmin,cmax) . error +
+      sum id:Nat,cmin,cmax:Coord . ((x(cmax)-x(cmin)+1 == DIM) &&
+                             (y(cmax)-y(cmin)+1 == DIM) &&
+                             (cmin==makeMinCoords&&cmax==makeMaxCoords)) ->
+                            checkMinMax(id,cmin,cmax) . Monitor(n,m,o-1) +
+      sum id:Nat,cmin,cmax:Coord . ((x(cmax)-x(cmin)+1 <  DIM) ||
+                             (y(cmax)-y(cmin)+1 <  DIM)) ->
+                            checkMinMax(id,cmin,cmax) . Monitor(n,m,o) +
+      sum id:Nat,cmin,cmax:Coord . ((x(cmax)-x(cmin)+1 >  DIM) ||
+                             (y(cmax)-y(cmin)+1 >  DIM)) ->
+                            checkMinMax(id,cmin,cmax) . error +
+      (n<=0) -> phack(1).Monitor(n,m,o) +
+      (m<=0) -> phack(2).Monitor(n,m,o) +
+      (o<=0) -> phack(3).Monitor(n,m,o) +
+      recvMonReset . MonitorInit;
+
+proc    System =
+     hide({becomeLeader}, (
+      allow({commID,commLeader,commCoord,coordAction,commMinMax,commMinMax2,commUpdate,
+             updateLight,phcomm,intern,error,reset,becomeLeader,timer,commReset,
+             commMonReset}, (
+       comm({sendID|recvID->commID,gotLeader|monLeader->commLeader,
+             sendCoord|recvCoord->commCoord,reportCoord|ackCoord->coordAction,
+             sendMinMax|recvMinMax->commMinMax,reportMinMax|checkMinMax->commMinMax2,
+             sendUpdate|recvUpdate->commUpdate,
+             phtry|phack->phcomm,
+             sendReset|recvReset->commReset,
+             sendMonReset|recvMonReset->commMonReset}, (
+        Smartpixellaunch( 0) || Smartpixellaunch( 1) || Smartpixellaunch( 2) ||
+        Smartpixellaunch( 3) ||
+        MonitorInit
+       ))
+      ))
+     ));
+
+init    System;
+\end{Verbatim}
+
+\section*{system.ren}
+
+\begin{Verbatim}[frame=lines,numbers=left,fontfamily=courier,fontsize=\footnotesize]
+act ctau;
+var i1,i2:Int;
+    c1,c2:Coord;
+    d1,d2:Nat;
+    n1:Nat;
+    b1:Bool;
+rename
+  % phase 1
+  commID(i1,i2) => tau;
+  commLeader(i1,i2,b1) => ctau;
+  % phase 2
+  commCoord(i1,c1,d1,d2) => tau;
+  coordAction(i1,n1,c1) => ctau;
+  % phase 3
+  commMinMax(i1,i2,c1,c2) => tau;
+  commMinMax2(i1,c1,c2) => ctau;
+  % phase 4
+  commUpdate(i1,i2,n1) => tau;
+  updateLight(i1,n1) => ctau;
+  phcomm(n1) => ctau;
+  intern => ctau;
+  commReset(i1,n1) => ctau;
+\end{Verbatim}

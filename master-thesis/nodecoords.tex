@@ -1,0 +1,148 @@
+\chapter{Node coordinates determination}
+
+\section{The model}
+\label{model:coords}
+
+The immediate goal of this phase is clear: we want to show, that the $DetermineCoords$ algorithm results in all nodes receiving correct coordinates. To fulfill this goal, we intend to have all nodes report the coordinates they obtain to a monitor, which in turn counts the number of correct coordinates received. However, in order to do this, we must first define what the correct coordinates are. Let us consider how coordinates are defined: basically, this is the position of the node relative to the leader - in other words, the leader itself always resides at coordinates \coord{0, 0}. Thus, as illustrated in Figure \ref{fig:relcoords}, if a node at direction $0$ exists, it should obtain coordinates \coord{0,1}. From this observation, it follows that the desired coordinates of some node number $n$ is simply the difference between node $n$'s position and the position of the leader (note that we do not consider rotations here - this is not necessary, since all nodes assume the rotation of the leader once they have received their coordinates). However, there is an important observation to be made: as outlined in Chapter \ref{sec:generalnotes}, in the model nodes are numbered sequentially from $0 \dots N - 1$, where node $0$ is the top-left node and node $N - 1$ is the bottom-right node. Yet, our coordinate system as described in Figure \ref{fig:gensetup} considers bottom-left as the smallest $(x,y)$-coordinates and top-right the largest. Due to this distinction between the model and our coordinate system, we have to invert the $y$-coordinate. To this end, we define a function $calcCoord(n) = \coord{n \mmod \mDD - \mLL \mmod \mDD, \mLL \mdiv \mDD - n \mdiv \mDD}$ which calculates the coordinates of node number $n$. In mCRL2, this becomes:
+
+\begin{codeverb}
+map     calcCoord : Int -> Coord;
+var     num:Int;
+eqn     calcCoord(num) =
+                  coord(num mod DIM - LEADERNUM mod DIM,
+                        LEADERNUM div DIM - num div DIM);
+\end{codeverb}
+
+The first two lines are simply administration for defining the function and a dummy argument. The remaining lines define the $calcCoord(num)$ function as stated before.
+
+We need to introduce actions in order to send and receive messages, as well as a communication action to connect these. To this end, consider the situation where node $A$ sends a message to node $B$: we introduce the actions \TT{sendCoord}, \TT{recvCoord} and \TT{commCoord}, all with parameters $num,coord,wantdir,recvdir$, where $num$ is the number of the node $B$, the receiving node (this is outlined in Chapter \ref{sec:generalnotes}), $coord$ are the coordinates which the sending node $A$ transmitted, $wantdir$ is the direction in which node $B$ should receive the message, whereas direction $recvdir$ is the direction in which node $B$ actually received the message. We define $\TT{sendCoord} \comm \TT{recvCoord} \rightarrow \TT{commCoord}$ in order to model communication between the processes.
+
+There is a crucial piece of information that our model requires: if we are to issue a $recvCoord$ action, we must limit the direction from which the message can be received, since there is only one possible direction in which such a message can be received. How we can determine this direction? The intuition is that the node that sends the message will already have assumed the rotation of the leader. This argument holds by induction: initially, the leader issues all coordinates so the argument trivially holds. As for the induction case, the node initiating the communication already has the correct orientation, or it would not be initiating communication.
+
+In order to determine the receiving direction $d'$ of a message given that it should arrive on direction $d$ on node $num$ with rotation $r$, we observe this is the difference between the node's rotation $r$ and the rotation of the leader node. However, the rotation of the leader is always zero: this means that the receiving direction is always relative to no rotation, from which it follows that the direction $d'$ on which the message arrives is simply direction $d$ left-rotated $r$ times: the node is right-rotated $r$ times, so we need to left-rotate it $r$ times in order to counter this. This means that $d' = rl(d,RotationList.num)$.
+
+While inspecting the algorithm, we notice that once coordinates are received, the node will consider itself to be at these coordinates. Subsequently, receiving any other coordinates will result in \TT{reset} actions, as this could only happen if there are multiple leaders in the system. Once all nodes except the leader have received coordinates, we are done. To this end, we introduce the \TT{success} action in our model, along with actions to report and acknowledge coordinates \TT{reportCoord}, \TT{ackCoord}, all with parameters $num,coord$, which communicate together as $\TT{reportCoord} \comm \TT{ackCoord} \rightarrow \TT{coordAction}$. Once a node receives its coordinates, it will initiate the \TT{reportCoord} action, where $num$ is the node number and $coord$ are the coordinates it considers itself at. As before, we use a \TT{ResultMon} process which acknowledges \TT{reportCoord} actions and keeps track of how many correct coordinates have been reported. Once all nodes have reported correct coordinates, a \TT{success} action will be initiated.
+
+Summarizing, we have the following actions:
+
+\begin{itemize}
+\item $\TT{sendCoord(num,coord,wantdir,recvdir)} \comm \TT{recvCoord(num,coord,wantdir,recvdir)} \\
+       \rightarrow \TT{commCoord(num,coord,wantdir,recvdir)}$ \\
+These actions are used to subsequently send, receive and communicate coordinates to a neighboring node.
+\item $\TT{reportCoord(num,coord)} \comm \TT{ackCoord(num,coord)} \rightarrow \TT{coordAction(num,coord)}$ \\
+Once node number $num$ receives coordinates $coord$, it performs \TT{reportCoord} action with said parameters. The monitor process uses \TT{ackCoord} actions to verify these coordinates.
+\item \TT{success} \\
+If all nodes but one (the leader, as it always resides on fixed coordinates) have reported their coordinates, the result monitor process will initiate a \TT{success} action if all coordinates were correct.
+\item \TT{reset} \\
+If a node has already received coordinates, yet receives new coordinates which do not agree on the previous ones, a \TT{reset} action must be initiated.
+\end{itemize}
+
+We will now illustrate the \TT{Smartpixel2} process:
+
+\begin{codeverb}
+proc    Smartpixel2init(num:Nat) =
+         Smartpixel2(num,num==LEADERNUM,if(num==LEADERNUM,0,4),coord(0,0),0);
+
+        Smartpixel2(num:Nat,actAsLeader:Bool,s:Nat,log:Coord,r:Int) =
+\end{codeverb}
+
+We introduce the \TT{Smartpixel2init} process, which is convenient for initializing the main \TT{Smartpixel2} process using default parameters. The node assumes its initial coordinates are $\coord{0,0}$, but only the leader will initialize sending coordinates to neighboring nodes. Finally, the rotation is initially $0$, causing nodes to assume they have not been rotated.
+
+\begin{codeverb}
+(s<4&&neighbornum(num,rr(s,RotationList.num))==num) -> intern .
+          Smartpixel2(num,actAsLeader,s+1,log,r) +
+sum d':Direction.(s<4&&neighbornum(num,rr(s,RotationList.num))!=num) ->
+         sendCoord(neighbornum(num,rr(s,RotationList.num)),move(rr(s,r),log),
+          rr(rd(s),r),d') .
+         Smartpixel2(num,actAsLeader,s+1,log,r) +
+\end{codeverb}
+
+As illustrated in Section \ref{sec:generalnotes}, we calculate the neighbor node number using the $neighbornum$ and $rr$ functions. We then proceed to calculate the coordinate to send and the direction we want it to arrive in. The reason we need a sum over the receiving direction, is that the sending node cannot know at which direction such a message arrives - thus, we try to send the message to any receiving direction possible. The corresponding $recvCoord$ function will then in turn only accept a single receiving direction. This corresponds to lines \ref{sp2:send1} - \ref{sp2:send2} of the algorithm.
+
+\begin{codeverb}
+sum c:Coord,d,d':Direction.(log==coord(0,0)&&!actAsLeader&&d'==rl(d,RotationList.num)) ->
+       recvCoord(num,c,d,d') . reportCoord(num,rl(d,d'),c) .
+       Smartpixel2(num,actAsLeader,0,c,rl(d,d')) +
+\end{codeverb}
+
+If coordinates are received while we still consider us at position \coord{0,0} and we do not act as leader, we honor these coordinates and report them accordingly to the monitor process. We set $s$ to $0$, since we should inform our neighbors of their coordinates relative to our own. This corresponds to lines \ref{sp2:recinit1} - \ref{sp2:recinit2} of the algorithm.
+
+\begin{codeverb}
+sum c:Coord,d,d':Direction.(c!=log&&(log!=coord(0,0)||actAsLeader)) ->
+       recvCoord(num,c,d,d') . reset +
+\end{codeverb}
+
+Once a node receives new coordinates ($c \neq log$) while it already knows its coordinates ($log \neq \coord{0,0} \lor actAsLeader$), any different coordinates must be rejected using initiation of the \TT{reset} action (line \ref{sp2:rejectcoord} of the algorithm).
+
+\begin{codeverb}
+sum d,d':Direction . ((log!=coord(0,0)||actAsLeader)&&d'==rl(d,RotationList.num)&&
+      r==rl(d,d')) ->
+       recvCoord(num,log,d,d') . Smartpixel2(num,actAsLeader,s,log,r) +
+\end{codeverb}
+
+If a node receives identical coordinates and the rotation matches, the status is unchanged (line \ref{sp2:recnext2} of the algorithm).
+
+\begin{codeverb}
+sum d,d':Direction . ((log!=coord(0,0)||actAsLeader)&&d'==rl(d,RotationList.num)&&
+      r!=rl(d,d')) ->
+       recvCoord(num,log,d,d') . reset;
+\end{codeverb}
+
+If a node receives identical coordinates but the rotation does not agree with what the node previously determined, a \TT{reset} action must be initiated (line \ref{sp2:badrot} of the algorithm).
+
+We still need to specify the \TT{ResultMon} process, which uses \TT{ackCoord} actions to monitor the result of \TT{reportCoord} actions:
+
+\begin{codeverb}
+proc    ResultMon(ok:Int) =
+         sum num:Nat.ackCoord(num,RotationList.num,calcCoord(num)) . ResultMon(ok+1) + @label{sp2:okpos}
+         sum num,r:Nat,c:Coord. (c!=calcCoord(num)||r!=RotationList.num) ->
+          ackCoord(num,r,c) . ResultMon(ok) + @label{sp2:badpos}
+\end{codeverb}
+
+The first line defines the \TT{ResultMon} process. There is a single parameters: \TT{ok} indicates how many valid node coordinates have been received. This is illustrated in the next two lines of the model: only if the position for node number $num$ is identical to $calcCoord(num)$ and the rotation matches the item in the rotation list, we increase $ok$ by one. Otherwise, we acknowledge the coordinate but do not change our status.
+
+\begin{codeverb}
+(ok>=(DIM*DIM-1)) -> success; @label{sp2:success}
+\end{codeverb}
+
+Finally, if all nodes except the leader have reported their coordinates, we are done - this implies the \TT{success} action will only be initiated if all nodes have successfully received their coordinates, which is what we wanted to determine.
+
+It remains to specify the initializing process:
+
+\begin{codeverb}
+proc    System =
+	 allow({commCoord,coordAction,success,reset}, ( @label{sp2:allow}
+	  comm({sendCoord|recvCoord->commCoord,reportCoord|ackCoord->coordAction}, (
+	     Smartpixel2init( 0) || Smartpixel2init( 1) || Smartpixel2init( 2) ||
+	     Smartpixel2init( 3) || Smartpixel2init( 4) || Smartpixel2init( 5) ||
+	     Smartpixel2init( 6) || Smartpixel2init( 7) || Smartpixel2init( 8) ||
+             ResultMon(0,0)
+          ))
+         ));
+
+init    System;
+\end{codeverb}
+
+Line \ref{sp2:allow} specifies the actions we allow. We use this to block the explicit \TT{sendCoord}, \TT{recvCoord}, \TT{reportCoord} and \TT{ackCoord} actions, as we are only interested in their communication variants. The next line specifies the communication between actions, which we have outlined previously. Finally, we list the processes: this is a $3 \times 3$ grid, totaling 9 nodes. We initialize our monitor process, which hasn't received any reports yet, so the parameter is zero.
+
+\section{The results}
+
+First of all, what do we intend to show? The goal is, that whenever $DetermineCoords$ ends, the coordinates of node number $num$ confirm to the output of the function $calcCoord(num)$. This property can be proved by inspecting the mCRL2 model.
+\\
+\begin{property} \label{prop:correctcoords}
+The algorithm $DetermineCoords$ as modeled in Section \ref{model:coords} results in all nodes assuming coordinates $calcCoord(num)$, where $num$ is the subsequent number of the node in question.
+\end{property}
+
+\begin{proof}
+We note that line \ref{sp2:okpos} of our model registers the number of correct positions reported. Subsequently, line \ref{sp2:success} initiates a \TT{success} action once all correct positions have been acknowledged. To this end, we generate a labeled transition system in which we only show the \TT{success} and \TT{reset} actions. The result is illustrated in Figure \ref{fig:grid}.
+
+\begin{statespace}{fig:grid}{Grid determination in which only the \TT{success} and \TT{reset} actions are visible}
+ \initialstate{n0};
+ \node (n1) [state,right of=n0] {1};
+ \draw [arrow] (n0) to node [auto] {success} (n1);
+\end{statespace}
+
+We observe that the \TT{success} action will always occur, which proves the algorithm $DetermineCoords$ as modeled in Section \ref{model:coords} results in the correct coordinates being assigned, as claimed.
+\end{proof}
+
+Property \ref{prop:correctcoords} can also be expressed as a modal formula, which is $[{\overline{\it success}}^{\star} ] \langle {\it true}^{\star} \cdot {\it success} \rangle {\it true}$: as long as a $success$ has not been performed, it must eventually be possible to do so. As expected, this property holds in the model.

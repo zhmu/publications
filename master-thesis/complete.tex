@@ -1,0 +1,339 @@
+\chapter{Overall System}
+\label{ch:overallsystem}
+
+In the previous chapters, we have analyzed each phase of the protocol individually. This analysis has proved that the proposed algorithms are correct, albeit with a very strong assumption: instead of considering time, we performed an \emph{event-based} analysis to show that the correct behavior will happen at some point in time.
+
+While this is useful for showing algorithm correctness, it is unknown what happens if nodes are in different phases. We do expect this will become a problem in practice as some nodes may be faster than others and nodes may be added and removed in the system at any time (as outlined in the assumptions in Section \ref{sec:assumptions}). Hence, this chapter will study the system as a whole, instead of focusing on a single phase. This has the expect result of enlarging both our mCRL2 specification as well as the statespace. Since the merging of all these processes is quite straightforward, we shall only list the mCRL2 process declaration and discuss the overall steps we have performed (the complete specification is available in Appendix \ref{apx:source}):
+
+\begin{codeverb}
+Smartpixel(num,leader_id,ph,sl,sc,ss,su,sr:Nat,leader,log,mincd,maxcd:Coord,f,r,rc:Nat)=
+\end{codeverb}
+
+Where:
+
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+$num$        & The node's internal identification number \\
+\hline
+$leader\_id$ & Identification number of the node's leader \\
+\hline
+$ph$         & Current node phase, $0$ means the node is resetting ($ph = 0 \Leftrightarrow mustReset$; refer to Section \ref{sec:reset} for more information about the reset algorithm) \\
+\hline
+$sl$         & Sent variable ($s$) for leader election messages \\
+\hline
+$sc$         & Sent variable ($s$) for node coordinate messages \\
+\hline
+$ss$         & Sent variable ($s$) for grid size messages \\
+\hline
+$su$         & Sent variable ($s$) for figure update messages \\
+\hline
+$sr$         & Sent variable ($s$) for reset messages \\
+\hline
+$leader$     & The process acts as leader \\
+\hline
+$log$        & Logical coordinates of this node \\
+\hline
+$mincd$      & Minimum coordinates known by this node \\
+\hline
+$maxcd$      & Maximum coordinates known by this node \\
+\hline
+$f$          & Current figure displayed by the node \\
+\hline
+$r$          & Node's calculated rotation \\
+\hline
+$rc$         & Reset count variable \\
+\hline
+\end{tabularx}
+
+How do we model transitions between phases? As before, we introduce a monitoring process that keeps an overview of the overall status of the system. By means of communication actions, we can then allow nodes to process to the next phase: we define $\TT{phtry} \comm \TT{phack} \rightarrow \TT{phcomm}$ with parameter $n$ as follows: whenever a node tries to leave phase $n$, it issues a \TT{phtry(n)} action. The monitor process issues \TT{phack(n)} actions for every phase $n$ which may be left (i.e. $phack(1)$ means all nodes may enter phase 2). This means any node can attempt to change state at any point in time, which is exactly what we wish to analyze in our model - the monitor will introduce \emph{soft synchronization}: phase transitions are only allowing if a condition allowed them is satisfied, but nodes have the possibility to delay transition to the next phase.
+
+When should the monitor process issue $phack$ actions? Previously, our monitoring process would issue $success$ actions once the desired condition was received; we need to update this monitor so that once the end of state $n$ is reached, the monitoring process starts issuing $phack(n)$ messages to allow any process that attempts to leave state $n$ to succeed. This can be achieved by counting the number of nodes that need to finish phase $n$ - if this amount is zero, $phack(n)$ can be issued.
+
+As the original specification in \cite{hendriksen08sp} is not clear regarding receiving messages which belong to another state, we introduce three possible scenarios and investigate the overall system behavior:
+
+\begin{itemize}
+\item Out of phase messages are completely ignored \\
+Whenever a message arrives that does not belong in the our current phase, it is discarded.
+\item Out of phase messages will be processed \\
+Any arriving message will be processed, but messages will only be sent if a node is in the correct phase to do so.
+\item Phasing will be completely ignored, any message can be sent/processed at any time. \\
+The notion of phases is removed completely, any message may be sent/processed at any time.
+\end{itemize}
+
+These scenarios shall be discussed in the next sections. The remainder of this chapter will focus on the effect of unreliable communication, adding and removing nodes in the network and illustrate a problem identified in the original specification.
+
+Throughout this chapter, all situations presented use a $2 \times 2$ grid configuration as depicted in \ref{fig:nodesformsc1}. It turns out a $2 \times 2$ grid is sufficient to discuss the possible issues.
+
+\begin{figure}[h]
+\centering
+\begin{nodefigure}
+\nodegrid{2}{0}{0}{0/0/ 2/$0$/$1$/$2$/$3$, 0/1/ 0/$0$/$1$/$2$/$3$,
+                   1/0/ 3/$0$/$1$/$2$/$3$, 1/1/ 1/$0$/$1$/$2$/$3$}
+\end{nodefigure}
+\caption{\label{fig:nodesformsc1} Network configuration analyzed throughout this chapter}
+\end{figure}
+
+\section{Ignoring out of phase messages}
+\label{sec:ignoreoop}
+
+The specifications from Chapters \ref{ch:leaderelection} - \ref{ch:showtime} have been merged, while strengthening all conditions with $ph = \mbox{corresponding phase number}$, adding the reset phase and a different monitor. The complete source can be found in Appendix \ref{apx:source}, along with the exact renaming used. This specification results in the statespace depicted in Figure \ref{fig:merge1}.
+
+\begin{statespace}{fig:merge1}{Overall system, out of phase messages are ignored}
+ \initialstate{n0};
+ \node (n1) [state,left of=n0] {1};
+ \node (n2) [state,right of=n0] {2};
+ \draw [arrow] (n0) to node [auto, swap] {$\tau$} (n1);
+ \draw [arrow] (n0) to node [auto] {$\tau$} (n2);
+ \draw [arrow,loop right] (n2) to node [auto] {timer} (n2);
+\end{statespace}
+
+As can be seen in Figure \ref{fig:merge1}, there are two possible paths: one path results in a deadlock, whereas the other path results in the desired functionality. This means we need to investigate why this deadlock occurs and determine whether it is possible in practice. Figure \ref{fig:msc1} illustrates a possible deadlock scenario in the $2 \times 2$ network configuration depicted in Figure \ref{fig:nodesformsc1}.
+
+\begin{figure}[h!]
+\centering
+\begin{sequencediagram}
+  \newthread{n0}{Node 0}
+  \newinst{n1}{Node 1}
+  \newinst{n2}{Node 2}
+  \newinst{n3}{Node 3}
+
+  %% ensure everyone has lid 0, to unlock the monitor
+  % 0 -> 1: sendID(0)
+  \mess{n0}{sendID(0)}{n1}
+  \mess{n0}{sendID(0)}{n2}
+  \mess{n2}{sendID(0)}{n3}
+  \begin{callself}{n0}{setPhase(2)}{} \end{callself}
+
+  %% finish the report loop
+  \mess{n1}{sendID(0)}{n0}
+  \mess{n1}{sendID(0)}{n3}
+  \mess{n2}{sendID(0)}{n0}
+  \mess{n2}{sendID(0)}{n3}
+  \mess{n3}{sendID(0)}{n2}
+  \mess{n3}{sendID(0)}{n1}
+
+  %% move 1 and 2 to phase 1
+  \begin{callself}{n1}{setPhase(2)}{} \end{callself}
+  \begin{callself}{n2}{setPhase(2)}{} \end{callself}
+
+  %% send coordinates
+  \mess{n0}{sendCoord($1,0$)}{n1}
+  \mess{n0}{sendCoord($0,-1$)}{n2}
+  \mess{n1}{sendCoord($0,0$)}{n0}
+  \mess{n1}{sendCoord($1,-1$)}{n3}
+  \mess{n2}{sendCoord($0,0$)}{n0}
+  \mess{n2}{sendCoord($1,-1$)}{n3}
+
+  %% allow node3 to enter phase 2
+  \begin{callself}{n3}{setPhase(2)}{} \end{callself}
+\end{sequencediagram}
+\noindent
+\caption{\label{fig:msc1} Message sequence chart of model deadlock, where time of all nodes is synchronized}
+\end{figure}
+
+There are multiple possible deadlock scenarios, but these seem to be equivalent to the one we are discussing. Refer to Figure \ref{fig:msc1}, which is a possible scenario. We note that node 0 can enter phase 2 of the system quite rapidly: when all but one node have decided they will not become leader, the $phtry(1)$ action will become unblocked. As we can see in the model, if a node has sent to all directions, it will try to enter the next phase.
+
+\newpage
+
+Evidently, the problem is that if a node can enter the next phase, this does not mean it will \emph{immediately} do so - the action may be delayed. As we clearly see in the message sequence chart, should any of the nodes delay the $setPhase(2)$, it will ignore any subsequent coordinate messages. So, while the remaining nodes are waiting to be able to enter phase 3, node 3 is waiting for coordinate messages which will no longer arrive. The result is that the entire system is deadlocked.
+
+The important question is: will this happen in practice? The answer is no, for two reasons:
+
+\begin{itemize}
+\item There is no monitor process in reality \\
+This means the system will always continue to the next phase after some time.
+\item We may rely on the fairness assumption \\
+It makes no sense to assume that a node will wait for a very long time.
+\end{itemize}
+
+This actually means our model is inadequate, as it does not reflect the real world situation. However, the main problem is that we cannot do better without introducing timing: we cannot specify that an action can only be delayed until some point in time and must be performed afterwards.
+The result is that we cannot conclude that the algorithms will always work as expected; we can only do so under the \emph{fairness assumption}. Informally speaking, the fairness assumption means eventually something good will happen; if an action is possible, we expect that it will eventually be performed; it will not happen that a node suddenly waits for a long time before continuing. This is precisely the condition we need to prevent the scenario in Figure \ref{fig:msc1}: if we assume no node will delay for a long period of time, the scenario will not occur and the system will indeed perform as expected.
+
+\section{Processing out of phase messages}
+
+In order to process out of phase messages, we need to alter the model used in the previous section by always accepting a message no matter what; this means we need to remove the $ph = \mbox{number}$ conditions before all $recv\dots$ actions. The resulting statespace can be found in Figure \ref{fig:merge2}.
+
+\begin{statespace}{fig:merge2}{Overall system, out of phase messages are accepted}
+ \initialstate{n0};
+ \draw [arrow,loop above] (n0) to node [auto] {timer} (n0);
+\end{statespace}
+
+As is clearly visible in Figure \ref{fig:merge2}, there are no deadlocks present: the system keeps performing \TT{timer} actions. Since there are no \TT{reset} actions, we can conclude that accepting all messages benefits the system: it will not result in sudden resets, and the response time can only get better. Of course, it must be noted that the monitor process keeps some sense of regularity between processes, but the state space clearly illustrates that accepting any message will not result in sudden reset cycles.
+
+\section{Ignoring the complete notion of phasing}
+\label{sec:ignorephase}
+
+Before we alter the model, we note that we cannot completely remove the current phasing parameter from the model. The reason is that even though we disregard phasing, we want to ensure that every event noticed by the monitoring process (for example, all nodes but one decide they will not become leader, which is used to allow transition to the next phase) must occur only \emph{once} per node, as our proposed algorithms run only once. The result is that within the model, all $ph = \mbox{number}$ lines are removed unless these are present for \TT{phtry(n)} actions. The result is that messages are sent/received in any phase of the system, yet each phase is only initiated once.
+
+Unfortunately, this results in an extremely large system - even while trying to analyze a $2 \times 2$ network, there are millions of states and hundreds of millions of transitions, which cannot immediately be reduced. In fact, the resulting system is so large that it cannot be analyzed anymore using the toolset; this is simply is not feasible.
+
+However, we can apply some reasoning to the problem and state our expectations. We expect that completely ignoring phasing is a very bad idea: any node could immediately attempt to send status update messages containing its own identification number. This can often trigger a reset, causing the entire network to reset again - where the exact same situation can arise again and again.
+
+\section{Effect of unreliable communication}
+\label{sec:unreliablecomm}
+
+In this section, we will alter the model in such a way that a single node in the network (which we will refer to as the faulty node $\mFF$) is unreliable: messages sent to this node do not have to arrive. Recall that we have \TT{send...} and \TT{intern} actions, where the latter represents the act of sending a message that will not be received. As we intend to provide the \emph{possibility} that a message gets lost, it makes sense to alter sending a message of each phase to (where \TT{FAULTYNUM} = $\mFF$):
+
+\begin{codeverb}
+(s<4&&(neighbornum(num,rr(s,RotationList.num))==num||
+       neighbornum(num,rr(s,RotationList.num))==FAULTYNUM)) ->
+    intern . Smartpixel(...,s+1,...) +
+(s<4&&(neighbornum(num,rr(s,RotationList.num))!=num)) ->
+    send...(neighbornum(num,rr(s,RotationList.num)),...) . Smartpixel(...,s+1,...)
+\end{codeverb}
+
+Note that we also have to alter the monitor process: the monitor knows that node $\mFF$ is unreliable, so it cannot expect that this node will ever achieve the desired status, thus any updates send to the monitor by node $\mFF$ must not influence the monitor status.
+
+The resulting statespace is quite large, and there do not seem to be any obvious patterns there. However, the main point of interest is: is there a deadlock? This can be expressed by the modal formula $[{\it true}^{\star}] \langle {\it true} \rangle {\it true}$. Unfortunately, the modal formula analysis tools of mCRL2 are currently not powerful enough to prove or disprove this statement. Even when experimental tools which attempt to reduce the number of calculations needed are used, this still appears to be infeasible. However, it is possible to generate a state space, which is depicted in Figure \ref{fig:merge4}.
+
+\begin{statespace}{fig:merge4}{Overall system, node $1$ may miss any message}
+ \initialstate{n0};
+ \node (n1) [state,right of=n0] {1};
+ \draw [arrow] (n0) to node [auto] {$\tau$} (n1);
+ \draw [arrow,loop above] (n0) to node [auto] {timer} (n0);
+\end{statespace}
+
+The $timer$ loop makes sense: if the leader node considers itself to be ready, it may continue to instruct any surrounding nodes to change their figure, which they will do. However, where does the deadlock come from? It turns out this is the result of multiple leaders becoming active, as is depicted in Figure \ref{fig:msc4}.
+
+\newpage
+
+\begin{figure}[h]
+\centering
+\begin{sequencediagram}
+  \newthread{n0}{Node 0}
+  \newinst{n1}{Node 1 $= \mFF$}
+  \newinst{n2}{Node 2}
+  \newinst{n3}{Node 3}
+
+  \mess{n0}{sendID(0)}{n2}
+  \mess{n2}{sendID(0)}{n3}
+  \begin{callself}{n2}{setPhase(2)}{} \end{callself}
+  \begin{callself}{n3}{setPhase(2)}{} \end{callself}
+  \begin{callself}{n1}{setPhase(2)}{} \end{callself}
+
+  \mess{n1}{sendCoord(-1,0)}{n0}
+  \begin{callself}{n0}{setPhase(2)}{} \end{callself}
+\end{sequencediagram}
+\noindent
+\caption{\label{fig:msc4} Message sequence chart detailing monitor issues if node $\mFF$ doesn't have reliable communication, where time of all nodes is synchronized}
+\end{figure}
+
+As illustrated in \ref{fig:msc4}, a possible scenario is that node $\mFF$ never receives word of a lower leader id, causing it to assume that it should become leader itself. However, node 0 will eventually also consider itself to be leader, as it truly has the lowest id. The deadlock shows up when node 0 delays becoming leader long enough for node $\mFF$ to start issuing coordinate messages. As node 0 doesn't consider itself to be leader, it will obey these messages. Yet, when it decides it will become leader, it considers itself to be at $\coord{-1,0}$ as it accepted these coordinates while it was still waiting to become leader. The monitoring process will not acknowledge these coordinates and other nodes will not notice any conflicting coordinates, resulting in the deadlock.
+
+Will this issue occur in reality? Based on the fairness assumption, we are inclined to claim it will not - yet, if a node is switched on/off at an ill time, this condition may very well occur. Will the actual system deadlock in such a case? The answer is no: the actual system will keep on continuing since nothing seems to be wrong. Only once the two leaders are issuing updates, the remaining nodes will detect that there are multiple leaders and in turn reset the system.
+
+However, we can prevent this issue by requiring a stronger condition to hold when a node intends to become leader. If a node has already received coordinates before it decided to become leader, it knows another node is already acting as leader; it would not have gotten these coordinates otherwise. The result is that a reset is to be issued. If a node did not receive any coordinates, it should just continue assuming leadership as usual. Thus, it makes sense to update the specification to:
+
+\begin{codeverb}
+(ph==1&&sl==4&&mapNodeId(num)==leader_id&&log==coord(0,0)) ->
+    phtry(1) . becomeLeader(num) .
+     Smartpixel(num,leader_id,2,sl,0,ss,su,sr,true,faulty,log,mincd,maxcd,f,r,rc) +
+(ph==1&&sl==4&&mapNodeId(num)==leader_id&&log!=coord(0,0)) ->
+    phtry(1) . sendMonReset .
+     Smartpixelreset(num,rc) +
+\end{codeverb}
+
+As this will cause the system to issue a reset once the upcoming leader realizes it has already received coordinates, which it can only have received by a node which has already assumed leadership. We have analyzed a model with this modification, which will become rather large as system resets can be triggered at quite a few occasions. In fact, attempting to show the resets will result in an enormous statespace, which is incomprehensible. However, if we only show the \TT{timer} action, we obtain the state space as illustrated in Figure \ref{fig:merge5}.
+
+\begin{statespace}{fig:merge5}{Overall updated system, node $\mFF$ may miss any message}
+ \initialstate{n0};
+ \draw [arrow,loop above] (n0) to node [auto] {timer} (n0);
+\end{statespace}
+
+It is clear by inspection of Figure \ref{fig:merge5} that the deadlock no longer occurs, which shows faulty nodes will not cause the system to deadlock.
+
+\section{Effect of adding/removing nodes}
+\label{sec:alteringconfig}
+
+Since it is not possible to dynamically add/remove processes in the mCRL2 language (processes can only be instantiated a single time), we added a parameter to indicate whether a node is physically present. Initially, all nodes but a single node are present, while a node we shall refer to as $\mPP$ could become present (this event will be called the \emph{activation} of $\mPP$) at any time.
+
+However, this approach yields severe problems when trying to alter the monitoring process to deal with the new situation. The main issue is that since $\mPP$ can become active at any time, the monitor must immediately be aware of this new situation. Yet, this may cause a conflict with the previous situation. Let us illustrate this by a Message Sequence Chart as depicted in Figure \ref{fig:msc3}.
+
+\begin{figure}[h]
+\centering
+\begin{sequencediagram}
+  \newthread{n0}{Node 0}
+  \newinst{n1}{Node 1}
+  \newinst{n2}{Node 2}
+  \newinst{n3}{Node 3 $= \mPP$}
+
+  \mess{n0}{sendID(0)}{n1}
+  \mess{n0}{sendID(0)}{n2}
+  \mess{n2}{sendID(0)}{n1}
+  \mess{n1}{sendID(0)}{n2}
+  \mess{n1}{sendID(0)}{n0}
+  \mess{n2}{sendID(0)}{n0}
+  \begin{callself}{n1}{setPhase(2)}{} \end{callself}
+  \begin{callself}{n2}{setPhase(2)}{} \end{callself}
+  \begin{callself}{n3}{activate}{} \end{callself}
+\end{sequencediagram}
+\noindent
+\caption{\label{fig:msc3} Message sequence chart detailing monitor issues if a new node $\mPP$ can be activated at any time, where time of all nodes is synchronized}
+\end{figure}
+
+It is possible that node $\mPP$ is activated while some nodes have processed to phase 2, while other nodes have not. The result is that both node $0$ and node $\mPP$ will be blocked from entering phase 2, as the conditions to allow them to proceed to the next phase are no longer satisfied. Since we cannot adequately model time, as we are in an untimed model, it is not possible to analyze what the result on the system is - in reality, the system would just continue and after some time notice that both node $0$ and node $\mPP$ act as leader, resulting in a reset and thus a new leader election.
+
+\section{Issues identified while analyzing the overall system}
+\label{sc:identifiedissues}
+
+Throughout this chapter, it appears no issues have been identified once all phases of the system have been merged in one single model. However, in the original specification as described in \cite{hendriksen08sp}, if any node receives some leader id which is not equal to the leader id the node has stored, a \TT{reset} would be initiated. The resulting statespace of such a model is illustrated in Figure \ref{fig:merge3}. Clearly, a reset is very undesirable: this indicates that in ideal circumstances (i.e. the network configuration is not being altered and node communication is 100\% reliable) the system can decide to start from scratch again, which should only be performed once a node believes there are multiple leaders. As this clearly should not be possible in our system, we need to investigate exactly why this reset is triggered.
+
+\begin{statespace}{fig:merge3}{Overall system, out of phase messages are ignored and any non-matching leader id results in a reset}
+ \initialstate{n0};
+ \node (n1) [state,right of=n0] {1};
+ \node (n2) [state,left of=n0] {2};
+ \draw [arrow] (n0) to node [auto] {$\tau$} (n1);
+ \draw [arrow] (n0) to node [auto,swap] {$\tau$} (n2);
+ \draw [arrow,loop left] (n2) to node [auto] {timer} (n2);
+ \draw [arrow,loop above] (n0) to node [auto] {reset} (n0);
+\end{statespace}
+
+After inspection, it turns out the problem is due to a scenario as depicted in Figure \ref{fig:msc2}. During the first phase, a leader is elected, and phase two is unblocked when $N - 1$ nodes decide they will not become leader. However, this does not mean all nodes agree upon the same leader id. This may seem in contrast to Property \ref{prop:sameleader}; however, this property only claims that if we wait long enough, all nodes will \emph{eventually} all obtain the same leader id. Since node speeds are not synchronized, this may not happen as some nodes may leave the leadership election phase sooner than others, which is exactly what we see in Figure \ref{fig:msc2}; it's quite possible a node is lagging behind or has joined in rather late, and thus only knows some other node will become leader but it may have the wrong node id as the leader. This shouldn't be a problem, since the leader election should result in a single node assuming leader status.
+
+\begin{figure}[h]
+\centering
+\begin{sequencediagram}
+  \newthread{n0}{Node 0}
+  \newinst{n1}{Node 1}
+  \newinst{n2}{Node 2}
+  \newinst{n3}{Node 3}
+
+  %% ensure there are 3 non-leaders, to unlock the monitor
+  \mess{n2}{sendID(2)}{n3}
+  \mess{n0}{sendID(0)}{n1}
+  \mess{n0}{sendID(0)}{n2}
+  \begin{callself}{n1}{setPhase(2)}{} \end{callself}
+  \begin{callself}{n2}{setPhase(2)}{} \end{callself}
+  \begin{callself}{n3}{setPhase(2)}{} \end{callself}
+  \begin{callself}{n0}{setPhase(2)}{} \end{callself}
+
+  %% send coordinates, to unlock monitor
+  \mess{n0}{sendCoord($1,0$)}{n1}
+  \mess{n0}{sendCoord($0,-1$)}{n2}
+  \mess{n1}{sendCoord($1,-1$)}{n3}
+  \begin{callself}{n1}{setPhase(3)}{} \end{callself}
+  \begin{callself}{n0}{setPhase(3)}{} \end{callself}
+  \begin{callself}{n3}{setPhase(3)}{} \end{callself}
+  \begin{callself}{n2}{setPhase(3)}{} \end{callself}
+
+  %% send some min/max update
+  \mess{n0}{sendMinMax(0, \coord{0,0}, \coord{0,0}}{n1}
+  \mess{n1}{sendMinMax(0, \coord{0,0}, \coord{1,0}}{n3}
+  \begin{callself}{n3}{reset}{} \end{callself}
+\end{sequencediagram}
+\noindent
+\caption{\label{fig:msc2} Message sequence chart illustrated \TT{reset} behavior of Figure \ref{fig:merge3}}
+\end{figure}
+
+However, during the minimum/maximum coordinate determination phase of the algorithm, the leader id is sent along to determine whether two different leaders are determining min/max coordinates. Thus, if different leader id's are rejected, we implicitly assume the entire network was already aware of the actual leader id - and as can be seen in the message sequence chart, this doesn't have to be the case.
+
+In order to prevent this unwanted condition, we introduced two alterations of the protocol:
+
+\begin{itemize}
+\item During minimum/maximum coordinate determination, if a lower leader id is received than what is currently known, that id will be used instead. \\
+Any higher id will still cause a reset, though.
+\item During the showtime phase, any node that considers itself to be leader will always send its own id number. \\
+This ensures there is only one leader, since there can be only one smallest id number.
+\end{itemize}
+
+As can be seen in Section \ref{sec:ignoreoop}, this modification of the protocol prevents the unwanted \TT{reset} actions. And, more importantly, our model has illustrated a scenario in which our seemingly correct protocols would not result in the intended behavior, illustrating the benefit of formal modeling.

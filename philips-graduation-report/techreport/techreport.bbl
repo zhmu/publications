@@ -1,0 +1,39 @@
+\begin{thebibliography}{1}
+
+\bibitem{ABISS}
+Werner Almesberger and Benno van~den Brink.
+\newblock Active block i/o scheduling system.
+\newblock Website, 2004.
+\newblock \url{http://abiss.sourceforge.net/doc/abiss-lk.ps}.
+
+\bibitem{TDotUOS}
+Maurice~J. Bach.
+\newblock {\em {The Design of the UNIX Operating System}}.
+\newblock Prentice Hall, 1988.
+
+\bibitem{UtLK}
+Daniel~P. Bovet and Marco Cesati.
+\newblock {\em Understanding the Linux Kernel}.
+\newblock O'Reilly \& Associates, 2001.
+
+\bibitem{LDD}
+Alessandro Rubini \& Greg Kroah-Hartman Jonathan~Corbet.
+\newblock {\em Linux Device Drivers}.
+\newblock O'Reilly \& Associates, 2001.
+
+\bibitem{LKD}
+Robert Love.
+\newblock {\em Linux Kernel Development}.
+\newblock Novell Press, 2005.
+
+\bibitem{TDaIotFOS}
+Marshall~Kirk McKusick and George~V. Neville-Neil.
+\newblock {\em The Design and Implementation of the FreeBSD Operating System}.
+\newblock Addison-Wesley, 2005.
+
+\bibitem{LIOP}
+Job Wildschut.
+\newblock {\em Graduation Report: Linux IO Performance}.
+\newblock Philips Research, 2004.
+
+\end{thebibliography}

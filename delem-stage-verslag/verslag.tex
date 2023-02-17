@@ -1,0 +1,128 @@
+%\documentclass[a4paper,oneside,11pt]{book}
+\documentclass[a4paper,11pt]{book}
+\usepackage[dutch]{babel}
+\usepackage{textcomp}
+\usepackage{fancyhdr}
+\usepackage{makeidx}
+\usepackage{tabularx}
+\usepackage{LTXtable}
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage{pdflscape}
+\usepackage{floatflt}
+\makeindex
+\pagestyle{fancy}
+\fancyhf{}
+%\fancyhead[L,RO]{\bfseries\thepage}
+%\fancyhead[LO]{\bfseries\rightmark}
+%\fancyhead[R]{\bfseries\leftmark}
+\rhead[]{\bfseries \leftmark}
+\lhead[\bfseries \leftmark]{}
+\rfoot[]{\thepage}
+\lfoot[\thepage]{}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\headheight}{0.5pt}
+\fancypagestyle{plain}{%
+	\fancyhead{}
+  \lhead[thesection]{\bfseries}
+  \rfoot[thesection]{\thepage}
+	\renewcommand{\headrulewidth}{0pt}
+}
+\usepackage[pdftex,pdfstartview=FitV]{hyperref}
+\hypersetup{%
+  pdftitle={Stageverslag: HSB Bus Analyzer},%
+  pdfauthor={Rink Springer},%
+  pdfkeywords={Stage Fontys XML CAN HSB Delem}
+}
+\hyphenation{super-klasse hoofd-feature pro-ject-be-schrij-ving il-lu-stra-tie tekst-be-stan-den}
+
+% definities
+\author{Rink Springer}
+\title{Stageverslag}
+
+\begin{document}
+
+\frontmatter
+
+% titel pagina
+\begin{titlepage}
+\hrule
+\vspace*{\fill}
+\begin{center}
+{\Huge Stageverslag} \\
+\vspace{2cm}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[height=2cm]{delem_logo.jpg}
+\end{center}
+\end{figure}
+HSB-Bus-Analyser\\
+\vspace{2cm}
+{\large Rink Springer}\\
+\vspace{2cm}
+Versie 1.2.1\\
+\today\\
+\vspace{2cm}
+\end{center}
+\vspace*{\fill}
+\hrule
+\vspace*{\fill}
+\end{titlepage}
+
+% voorblad
+\input{hi_voorblad}
+
+% voorwoord
+\input{voorwoord}
+
+\tableofcontents
+
+% samenvatting
+\input{samenvatting}
+
+% summary
+\input{summary}
+
+% verklarende woordenlijst
+\input{woordenlijst}
+
+\mainmatter
+
+% 1. inleiding
+\input{inleiding}
+
+% 2. het proces
+\input{proces}
+
+% 3. de opdracht
+\input{opdracht}
+
+% 4. de onderzoeken
+\input{onderzoek}
+
+% 5. de implementatie 
+\input{implementatie}
+
+% 6. conclusie / aanbevelingen
+\input{conclusie}
+
+% 7. bronvermelding
+\input{bronvermelding}
+
+\appendix
+
+% a. plan van aanpak
+\input{pva}
+
+% b. communicatieplan
+\input{commplan}
+
+% c. gebruikte software
+\input{software}
+
+% index
+\backmatter
+\printindex
+
+\end{document}

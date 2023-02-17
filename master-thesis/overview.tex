@@ -1,0 +1,65 @@
+\chapter{Overview}
+\label{sec:overview}
+
+% Wat zijn die smartpixel dingen?
+% hoe ziet een netwerk eruit?
+% wat moeten ze doen?
+
+A single \emph{SmartPixel} is a square device, which contains a light that can be switched on or off. The device also contains four physical connectors, referred to as $0, \dots, 3$, which reside on each side and are used in order to communicate with a neighboring SmartPixel. A number of these SmartPixels connected together form a network. We shall refer to a single SmartPixel in such a network as a \emph{node}. It is important to note that all nodes contain completely identical hardware and software; the only property that makes them distinguishable is an \emph{identification number}, or \emph{id}, which is unique per node. Since the nodes are square-sized, they can be rotated any multiple of $90 \degree$ before they are connected to adjacent nodes. Nodes know nothing of their position in the network, let alone whether each side has a neighbor - all they can do is send messages to adjacent neighboring nodes, receive messages from such nodes and switch the light on or off. A visual representation of such a SmartPixel can be found in Figure \ref{fig:smartpixel}.
+
+\begin{figure}[h]
+ \centering
+ \begin{tikzpicture}
+  \draw[<-,>= stealth'] (1.75,1) -- (1.75,0);
+  \draw[->,>= stealth'] (2.25,1) -- (2.25,0);
+  \draw[->,>= stealth'] (1.75,3) -- (1.75,4);
+  \draw[<-,>= stealth'] (2.25,3) -- (2.25,4);
+  \draw[<-,>= stealth'] (0,1.75) -- (1,1.75);
+  \draw[->,>= stealth'] (0,2.25) -- (1,2.25);
+  \draw[<-,>= stealth'] (3,1.75) -- (4,1.75);
+  \draw[->,>= stealth'] (3,2.25) -- (4,2.25);
+  \draw (1,1) rectangle (3,3);
+  \draw (2,2) circle (0.45cm);
+ \end{tikzpicture}
+ \caption{\label{fig:smartpixel} Visual representation of a single SmartPixel}
+\end{figure}
+
+Once such a network of nodes has been assembled, connected and switched on, the nodes will perform some necessary initialization steps in order to determine the network configuration; these steps are outlined in Section \ref{sec:operation}. Once the initialization is completed, the nodes continue to perform their main function: display the first figure out of a list of figures, delay a few seconds, display the next figure, delay a few seconds, etc. This keeps going until we pull the plug. If nodes are physically altered, such as by adding or removing nodes while the system is operating, the system should adapt to the new situation. For the purposes of these figures, it is assumed that the network itself is square-sized, $N \times N$ nodes. A possible configuration is presented in Figure \ref{fig:examplenet}: each square is a node, where the $0$, $1$, $2$, $3$ denote the north, east, south and west connections of this node. Finally, the number represents the unique identification number of the node.
+
+\begin{figure}[h]
+\centering
+\begin{nodefigure}
+\nodegrid{4}{0}{0}{0/0/ 8/$0$/$1$/$2$/$3$, 1/0/12/$2$/$3$/$0$/$1$,
+                   2/0/11/$3$/$0$/$1$/$2$, 3/0/ 4/$2$/$3$/$0$/$1$,
+                   0/1/15/$1$/$2$/$3$/$0$, 1/1/ 1/$0$/$1$/$2$/$3$,
+                   2/1/ 6/$1$/$2$/$3$/$0$, 3/1/ 7/$1$/$2$/$3$/$0$,
+                   0/2/ 5/$0$/$1$/$2$/$3$, 1/2/10/$0$/$1$/$2$/$3$,
+                   2/2/ 3/$3$/$0$/$1$/$2$, 3/2/13/$1$/$2$/$3$/$0$,
+                   0/3/ 9/$1$/$2$/$3$/$0$, 1/3/14/$0$/$1$/$2$/$3$,
+                   2/3/16/$3$/$0$/$1$/$2$, 3/3/ 2/$0$/$1$/$2$/$3$}
+\end{nodefigure}
+\caption{\label{fig:examplenet} Example of a $4 \times 4$ network of SmartPixel nodes}
+\end{figure}
+
+While the usefulness of such a system can be doubted, the interesting challenges that will arise while specifying and proving a model cannot. How will nodes know `what to do'? How can we ensure that the system remains as operational as possible whenever some nodes fail? Will the algorithms proposed in Section \ref{sec:operation} turn out to be correct, or will unforeseen side-effects show up in the model? 
+
+\section{Hardware}
+\label{sec:hardware}
+
+The hardware in use consists of a PCB board of $3 \times 3$ cm, containing an ATMega644 microcontroller and some assorted parts. A message can be sent out to each of the four directions individually and it is possible to tell from which direction a message was received. In each direction, only a single message can be sent at a time; these messages are transmitted using Manchester encoding. While a message is being sent, an incoming message will still be received.
+
+\section{Assumptions}
+\label{sec:assumptions}
+
+Considering the hardware and requirements of the system, this design is based on the following assumptions:
+
+\begin{enumerate}
+\item \label{ass:diffspeed} Each node may have a slight clock speed deviation \\
+There may be a slight deviation ($\pm 10\%$) from the specified clock speed - this deviation is unknown to the node.
+%\item \label{ass:reliablemsg} Messages always arrive, there are no resends needed \\
+%The assumption is that the encoding in use will detect corruption and request resends as needed.
+\item \label{ass:alternodes} Nodes can be added, removed and switched on/off at any time in the system.
+\item \label{ass:speedymsg} The delay between node $A$ transmitting a message and node $B$ receiving it is negligible.
+\item \label{ass:corruptmsg} It is possible to distinguish between a valid and corrupt message. \\
+We will only consider retrieving valid messages; corrupt messages will always be discarded.
+\end{enumerate}

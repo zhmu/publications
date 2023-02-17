@@ -1,0 +1,239 @@
+\chapter{Axioms for processes}
+\label{apx:axioms}
+
+%The following list contains all available axioms, as listed in \cite{groote07radv}.
+\begin{table}[htbp]
+\begin{center}
+\begin{tabular}{|@{\hspace{0.5cm}}lL@{\hspace{0.5cm}}|}
+\hline
+&\\
+MA1 & \alpha \msync \beta = \beta \msync \alpha \\
+MA2 & (\alpha \msync \beta) \msync \gamma = \alpha \msync (\beta \msync \gamma) \\
+MA3 & \alpha \msync \tau = \alpha \\
+&\\
+MD1& \tau \setminus \alpha = \tau \\
+MD2& \alpha \setminus \tau = \alpha \\
+MD3& \alpha \setminus (\beta \msync \gamma) = (\alpha \setminus \beta) \setminus \gamma \\
+MD4& (a(d) \msync \alpha) \setminus a(d) = \alpha \\
+MD5& (a(d) \msync \alpha) \setminus b(e) =
+  a(d) \msync (\alpha \setminus b(e)) \quad \mbox{if~$a \not\equiv b$ or $d \not\approx e$}\\
+&\\
+MS1& \tau \sqsubseteq \alpha = \true \\
+MS2& a\sqsubseteq \tau = \false \\
+MS3& a(d) \msync \alpha \sqsubseteq a(d) \msync \beta = \alpha \sqsubseteq \beta  \\
+MS4& a(d) \msync \alpha \sqsubseteq b(e) \msync \beta =
+  a(d) \msync (\alpha \setminus b(e)) \sqsubseteq \beta \quad \mbox{if~$a \not\equiv b$ or $d \not\approx e$}
+ \\
+& \\
+MAN1& \dataless{\tau} = \tau \\
+MAN2& \dataless{a(d)} = a \\
+MAN3& \dataless{\alpha \msync \beta} = \dataless{\alpha} \msync \dataless{\beta} \\
+& \\
+A1 & x+  y\ax y+  x \\
+A2 & x+  (y+  z)\ax(x+  y)+  z \\
+A3 & x+  x\ax x \\
+A4 & (x+  y) {\cdot}  z\ax x {\cdot}  z+  y {\cdot}  z \\
+A5 & (x {\cdot}  y) {\cdot}  z\ax x {\cdot}  (y {\cdot}  z) \\
+A6 & \alpha +\delta \ax \alpha \\
+A7 & \delta {\cdot}  x\ax\delta \\
+& \\
+Cond1 & \true {\rightarrow}x\diamond y \ax x \\
+Cond2 & \false {\rightarrow}x\diamond y \ax y \\
+& \\
+SUM1 & \sum_{d\ap D} x \ax x  \\
+% SUM2 & \sum_{d\ap D} X(d) = \sum_{e\ap D} X(e)\\
+SUM3 & \sum_{d\ap D} X(d) \ax \sum_{d\ap D} X(d) + X(d) \\
+SUM4 & \sum_{d\ap D} (X(d)+Y(d)) \ax \sum_{d\ap D} X(d) + \sum_{d\ap D} Y(d) \\
+SUM5 & (\sum_{d\ap D} X(d)) {\cdot}  y \ax \sum_{d\ap D} X(d) {\cdot}  y \\
+%&&& \\
+%MR (C3) & c {\rightarrow}x,y \ax c {\rightarrow}x + \neg c {\rightarrow}y \\
+%MR (C4) & c_1 {\rightarrow}(c_2 {\rightarrow}x,y),y \ax (c_1 {\wedge} c_2) {\rightarrow}x,y \\
+%MR (C5) & c_1 {\rightarrow}x + c_2 {\rightarrow}x \ax (c_1 \lor c_2) {\rightarrow}x \\
+%MR (C6) & (c {\rightarrow}x,y) {\cdot}  z \ax c {\rightarrow}x {\cdot}  z , y {\cdot}  z \\
+%MR (C7) & c {\rightarrow}(x+y), z \ax c {\rightarrow}x,z + c {\rightarrow}y,z \\
+%MR (C8) & (c {\rightarrow}x) {\cdot}  (c {\rightarrow}y) \ax c {\rightarrow}x {\cdot}  y \\
+%MR SUM12 & c {\rightarrow}(\sum_{d} Xd) \ax \sum_{d} c {\rightarrow}Xd \\
+& \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\begin{table}[htbp]
+\begin{center}
+\begin{tabular}{|@{\hspace{0.5cm}}lLl@{\hspace{0.5cm}}L|}
+\hline
+%&\\
+%SMA & \alpha \cmerge \beta = \alpha \sqcup \beta \\
+&&&\\
+M & x\parallel y\ax x\lmerge y+  y\lmerge x+  x\cmerge y &
+T1 & x+  \daz\ax x \\
+&&
+T2 & c {\rightarrow}x \ax c {\rightarrow}x\diamond\daz \\
+LM1 & \alpha\lmerge x\ax (\alpha \ll x) {\cdot}  x &
+T3 & x \ax \sum_{t\ap \TTT} x \at t \\
+LM2 & \delta \lmerge x \ax \delta \ll x&
+T4 & x\at t {\cdot}  y \ax x \at t {\cdot}  (t \gg y) \\
+LM3 & \alpha{\cdot}  x\lmerge y\ax (\alpha \ll y) {\cdot} (x\parallel y) &
+T5 & x\at t \ax t{>}0\rightarrow x\at t\\
+LM4 & (x+  y)\lmerge z\ax x\lmerge z+  y\lmerge z &
+&\\
+LM5 & (\sum_{d\ap D} X(d)) \lmerge y \ax \sum_{d\ap D}X(d) \lmerge y &
+TA1 & \alpha\at t \at u \ax (t\dataeq u) {\rightarrow}\alpha\at t \diamond \delta\at \min(t,u) \\
+LM6 & x \at t \lmerge y \ax (x \lmerge y)\at t &
+TA2 & \delta\at t \at u \ax \delta\at \min(t,u) \\
+& &
+TA3 & (x+y) \at t \ax x \at t + y \at t \\
+S1 & x \cmerge y = y \cmerge x &
+TA4 & (x {\cdot}  y) \at t \ax x\at t {\cdot}  y \\
+S2 & (x \cmerge y) \cmerge z = x \cmerge (y \cmerge z) &
+TA5 & (\sum_{d\ap D} X(d)) \at t \ax \sum_{d\ap D} X(d) \at t \\
+S3 & x \cmerge \tau = x &
+&\\
+S4 & \alpha \cmerge \delta = \delta &
+TI1 & t \gg \alpha\at u \ax t<u {\rightarrow}\alpha\at u \diamond \delta\at t \\
+S5 & (\alpha{\cdot}  x)\cmerge\beta\ax\alpha\cmerge\beta{\cdot}  x &
+TI2 & t \gg \delta\at u \ax \delta\at \max(t,u)  \\
+S6 & (\alpha{\cdot}  x)\cmerge(\beta{\cdot}  y)\ax\alpha\cmerge\beta{\cdot} (x\parallel y) &
+TI3 & t \gg (x+y) \ax t \gg x + t \gg y \\
+S7 & (x+ y)\cmerge z\ax x\cmerge z+  y\cmerge z &
+TI4 & t \gg (x {\cdot}  y) \ax (t \gg x) {\cdot}  y \\
+S8  & (\sum_{d\ap D}X(d)) \cmerge y \ax \sum_{d\ap D}X(d) \cmerge y&
+TI5 & t \gg \sum_{d\ap D} X(d) \ax \sum_{d\ap D} t\gg X(d) \\
+S9 & x \at t \cmerge y \ax (x \cmerge y) \at t &
+&\\
+&&&\\
+TB1 & x \ll \alpha \ax x &
+&\\
+TB2 & x \ll \delta \ax x&
+&\\
+TB3 & x\ll y\at t=\sum_{u\ap\TTT}u<t\rightarrow (x\at u)\ll y &
+&\\
+TB4 & x \ll (y+z) \ax x \ll y + x \ll z &
+&\\
+TB5 & x \ll y {\cdot}  z \ax x \ll y &
+&\\
+TB6 & x \ll \sum_{d\ap D} Y(d) \ax \sum_{d\ap D} x \ll Y(d) &
+&\\
+&&&\\
+TC1 & (x\lmerge y)\lmerge z=x\lmerge (y\parallel z)&
+&\\
+TC2 & x\lmerge \delta=x{\cdot}\delta&
+&\\
+TC3 & (x\cmerge y)\lmerge z=x\cmerge (y\lmerge z)&
+&\\
+&&&\\
+R1 & \ren{R}(\tau) \ax \tau &
+&\\
+R2 & \ren{R}(a(d)) \ax b(d) ~~~~~~{\rm if}~ a {\rightarrow}b \in R~\mbox{for some}~b &
+&\\
+R3 & \ren{R}(a(d)) \ax a(d) ~~~~~~{\rm if}~a {\rightarrow}b \not\in R~\mbox{for all}~b &
+&\\
+R4 & \ren{R}(\alpha \cmerge \beta) \ax \ren{R}(\alpha) \cmerge \ren{R}(\beta) &
+&\\
+R5 & \ren{R}(\delta)\ax\delta  &
+&\\
+R6 & \ren{R}(x+  y)\ax\ren{R}(x)+  \ren{R}(y)   &
+&\\
+R7 & \ren{R}(x{\cdot}  y)\ax\ren{R}(x){\cdot} \ren{R}(y)  &
+&\\
+R8 & \ren{R}(\sum_{d\ap D}X(d))\ax\sum_{d \ap D}\ren{R}(X(d))&
+&\\
+R9 & \ren{R}(x\at t) \ax \ren{R}(x)\at t &
+&\\
+&&&  \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\begin{table}[htb]
+\begin{center}
+\begin{tabular}{|@{\hspace{0.5cm}}lL@{\hspace{0.5cm}}lL@{\hspace{0.5cm}}|}
+\hline
+&&&\\
+C1 & \COMM{C}(\alpha)\ax\gamma_C(\alpha) &
+C4 & \COMM{C}(x{\cdot}  y)\ax\COMM{C}(x){\cdot} \COMM{C}(y)  \\
+C2 & \COMM{C}(\delta)\ax\delta &
+C5    & \COMM{C}(\sum_{d\ap D}X(d))\ax\sum_{d \ap D}\COMM{C}(X(d))\\
+C3 & \COMM{C}(x+  y)\ax\COMM{C}(x)+ \COMM{C}(y) &
+C6 & \COMM{C}(x\at t) \ax \COMM{C}(x)\at t \\
+&&&\\
+V1 & \allow{V}(\alpha)\ax \alpha ~~~~~ {\rm if}~\dataless{\alpha}\inmodeq V\cup\{\tau\}&
+V4 & \allow{V}(x+  y)\ax\allow{V}(x)+  \allow{V}(y) \\
+V2 & \allow{V}(\alpha)\ax\delta  ~~~~~ \,{\rm if}~\dataless{\alpha}\ninmodeq V\cup\{\tau\} &
+V5 & \allow{V}(x{\cdot}  y)\ax\allow{V}(x){\cdot} \allow{V}(y)\\
+V3 & \allow{V}(\delta)\ax \delta &
+V6 & \allow{V}(\sum_{d\ap D} X(d))\ax\sum_{d\ap D}\nabla_V(X(d))\\
+&&
+V7 & \allow{V}(x\at t) \ax \allow{V}(x)\at t \\
+TV1 & \allow{V}(\allow{W}(x))=\allow{V\cap W}(x)&&\\
+&&&\\
+E1 & \encap{B}(\tau)\ax \tau &
+E5 & \encap{B}(\delta)\ax \delta \\
+E2 & \encap{B}(a(d)) \ax a(d) ~~~~~{\rm if}~a \not\in B &
+E6 & \encap{B}(x+  y)\ax\encap{B}(x)+  \encap{B}(y) \\
+E3 & \encap{B}(a(d)) \ax \delta ~~~~~~~~~{\rm if}~ a \in B &
+E7 & \encap{B}(x{\cdot}  y)\ax\encap{B}(x){\cdot} \encap{B}(y) \\
+E4 & \encap{B}(\alpha\cmerge \beta)\ax\encap{B}(\alpha)\cmerge \encap{B}(\beta) &
+E8 & \encap{B}(\sum_{d\ap D} X(d))\ax\sum_{d\ap D}\encap{B}(X(d)) \\
+   & &
+E9 & \encap{B}(x\at t)\ax\encap{B}(x)\at t \\
+&&&  \\
+H1 & \hide{I}(\tau)                         \ax \tau &
+H5 & \hide{I}(\delta)\ax\delta \\
+H2 & \hide{I}(a(d))            \ax \tau ~~~~~~~~~{\rm if}~ a\in I &
+H6 & \hide{I}(x{+}y)\ax\hide{I}(x)+  \hide{I}(y) \\
+H3 & \hide{I}(a(d))           \ax a(d) ~~~~~{\rm if} ~a\not\in I &
+H7 & \hide{I}(x{\cdot}  y)\ax\hide{I}(x){\cdot} \hide{I}(y) \\
+H4 & \hide{I}(\alpha \cmerge \beta) \ax \hide{I}(\alpha) \cmerge \hide{I}(\beta) &
+H8 & \hide{I}(\sum_{d\ap D}X(d))\ax\sum_{d\ap D}\hide{I}(X(d)) \\
+&&
+H9 & \hide{I}(x\at t) \ax \hide{I}(x)\at t \\
+&&& \\
+U1 & \prehide{U}(\tau)                         \ax \tau &
+U5 & \prehide{U}(\delta)\ax\delta \\
+U2 & \prehide{U}(a(d))            \ax {\it int} ~~~~~ {\rm if}~ a\in U &
+U6 & \prehide{U}(x{+}y)\ax\prehide{U}(x)+  \prehide{U}(y) \\
+U3 & \prehide{U}(a(d))           \ax a(d) \,~~~{\rm if}~ a\not\in U &
+U7 & \prehide{U}(x{\cdot}  y)\ax\prehide{U}(x){\cdot} \prehide{U}(y) \\
+U4 & \prehide{U}(\alpha \cmerge \beta) \ax \prehide{U}(\alpha) \cmerge \prehide{U}(\beta) &
+U8 & \prehide{U}(\sum_{d\ap D}X(d))\ax\sum_{d\ap D}\prehide{U}(X(d)) \\
+&&
+U9 & \prehide{U}(x\at t) \ax \prehide{U}(x)\at t \\
+&&& \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\begin{table}[htb]
+\begin{center}
+\begin{tabular}{|lll|}
+\hline
+&&\\
+B1&$x{\cdot}\tau=x$&\\
+B2&$x{\cdot}(\tau{\cdot}(y+z)+y)=x{\cdot}(y+z)$&\\
+&&\\
+W1&$x{\cdot}\tau=x$&\\
+W2&$\tau{\cdot}x=\tau {\cdot}x+x$&\\
+W2&$a{\cdot}(\tau{\cdot}x+y)=a{\cdot}(\tau{\cdot}x+y)+a{\cdot}x$&\\
+&&\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\begin{table}[htb]
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+&\\
+Failures equivalence&$a{\cdot}(b{\cdot}x+u)+a{\cdot}(b{\cdot}y+v)=
+a{\cdot}(b{\cdot}x+b{\cdot}y+u)+a{\cdot}(b{\cdot}x+b{\cdot}y+v)$\\
+&$a{\cdot}x+a{\cdot} (y+z)=a{\cdot}x+a{\cdot} (x+y)+a{\cdot}(y+z)$\\
+Trace equivalence&$x{\cdot}(y+z)=x{\cdot}y+x{\cdot}z$\\
+Weak trace equivalence&$x{\cdot}(y+z)=x{\cdot}y+x{\cdot}z$\\
+&$\tau{\cdot}x=x$\\
+&$x{\cdot}\tau=x$\\
+&\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}

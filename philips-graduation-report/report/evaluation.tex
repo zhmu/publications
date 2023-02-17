@@ -1,0 +1,160 @@
+\chapter{Evaluation}
+\index{Evaluation}
+
+\section{Planning using PPTS}
+
+PPTS, the Project Planning \& Tracking System, is the planning system in use at SES. It is suited for extreme programming projects by defining the workload into user stories. Each \wi{user story} is divided into \wi{tasks}, to which you can assign an estimation and the actual used working hours. All this information is nicely plotted in a graph, which is then used to predict how close we are to the iteration's result.
+
+For the first few weeks, I've used PPTS nicely in order to keep a planning. However, as things progressed, eventually I kept forgetting to store my stories, tasks and hours within PPTS. My mentor agreed PPTS is a bit of an overkill for my project, as I am the only person working at it. Therefore, my involvement with PPTS was brief.
+
+\section{Code reviewing}
+
+By the end of the $5^\textrm{th}$ iteration, Mischa wanted to review some of my code. The result of this was the two of us having discussions of about an hour which basically came down to personal taste. Of course, there were some parts in which he totally was correct to point some issues, but most of the discussion was purely a matter of personal coding style.
+
+After this came up a few times, we agreed that we'd no longer discuss minor details but would rather focus on the bigger picture. Since then, we have been on the same track while browsing through the code. These reviews have been very helpful to determine strong and weak points of the implementation, all of which were eventually patched up to reach the degree of quality desired.
+
+\section{Working with a team}
+
+During the internship, I was part of the \wi{eHub team}. As required by Extreme Programming, all team members work close to each other (in our case, in the same room) so knowledge is easily available and you don't need to spend hours looking for people in case you have a question or are stuck.
+
+It can also be very beneficial to have other people take a look at your code if you encounter a problem, as it is common to overlook simple issues. Even explaining the issue to someone else can be a great help, as it forces you to think about what you actually created. As such, I have helped coworkers with their problems and they have returned this favor to me. This approach was kind of new to me, as communication on my previous internships was not as informal or helpful.
+
+\section{Iterations}
+
+To Extreme Programming, an \wi{iteration} is a predefined time period, 2 weeks in our case. At the beginning of each iteration, it will be determined what will be done during the iteration. Based on this, a planning is made and the work is divided between team members.
+
+\subsection{Iteration 1 and 2: Getting started}
+\label{startup}
+
+\textbf{7 February - 4 March}
+
+\subsubsection{Activities}
+
+The first month of the internship, this mostly came down to meeting people, setting up the work environment and having discussions about what I would be doing.
+
+During this discussion, the following possibilities arose:
+
+\begin{itemize}
+\item Examine the \wi{ext3} filesystem \\
+This is the de facto Linux filesystem, which may be patched so it will suit our needs.
+\item Port \wi{RTFS} to Linux \\
+Philips has made their own, userland realtime filesystem. It may be a good option to port this to Linux.
+\item Create a new Linux realtime filesystem \\
+Based on the RTFS ideas, it may be useful to design a new filesystem based on RTFS ideas.
+\end{itemize}
+
+In order to have some knowledge in advance, I quickly took a look on how ext3 is organized, and some minor looks at the codebase. Since the RTFS codebase was unavailable at the time, I also read some whitepapers to determine the design goals of the RTFS.
+
+One of the issues with RTFS were its severe limitations: it was designed for limited environments, in which memory is sparse. A redesign of the filesystem could take the filesystem to the next level, in which these issues have disappeared.
+
+\subsubsection{Results}
+
+Based on my studies of ext3 and the RTFS, it was determined that patching up ext3 to suit our needs would be a too big risk. It would be a project on its own to dig through ext3's codebase and design, let alone suggest/implement improvements. Therefore, this option was deemed unrealistic.
+
+At the end of this discussion, we determined that it would be much more beneficial and maintainable to design a new filesystem from scratch than to keep patching up RTFS itself. Therefore, a new filesystem would be created, LIMEFS.
+
+\subsection{Iteration 3: Designing the filesystem}
+
+\textbf{8 - 18 March}
+
+\subsubsection{Activities}
+
+As the goal was laid out, it was time to start designing the filesystem itself. First, this meant all different aspects of RTFS had to be examined and embedded in our filesystem.
+
+After some careful studying, both Mischa and I developed proposals for the data structures to be used. After careful consideration, we merged the best of both designs together.
+
+\subsubsection{Results}
+
+By the end of this iteration, the filesystem design was finalized. Both my company mentor Mischa, who was involved in RTFS work and I were satisfied with the new design. LIMEFS still remains a very close relative of the original RTFS, but is much better geared towards current requirements.
+
+\subsection{Iteration 4: Starting the implementation}
+
+\textbf{21 March - 1 April}
+
+\subsubsection{Activities}
+
+During this iteration, the true implementation of the filesystem began. At first, I studied a lot of existing filesystems to determine the filesystem interface towards the kernel. From then on, a simple skeleton filesystem was created. This skeleton was loadable as a kernel module and would return failure on every operation. This simplified development by adding features one by one.
+
+Along with coding the filesystem itself, development of the filesystem creation utility, \texttt{mkfs.limefs}, began. This utility creates a filesystem on a disk. The first version featured some debugging hacks which would allow it to create preliminary files to aid in debugging.
+
+\subsubsection{Results}
+
+At the end of the iteration, I was able to create a new filesystem, which could be mounted and used. Files would always be empty, since especially the file reading/writing was not yet implemented.
+
+\subsection{Iteration 5: Reading/writing files}
+
+\textbf{4 - 15 April}
+
+\subsubsection{Activities}
+
+As the more basic functionality was completed, file reads/writes were implemented. This proved to be challenging, as some parts are hard to debug sensibly.
+
+This functionality needed more administrative code to be written, such as the free space administration code. In order to enforce quality on such an important subsystem, software tests were designed to maintain a correct implementation.
+
+\subsubsection{Results}
+
+A debugging tool, \texttt{dumpfs}, was written to dump the filesystem structures in a human-readable form for easier debugging. Also, tests were written for the extent administration code (refer to the technical report for more information).
+
+By the end of this iteration, it was possible to make actual use of the filesystem by creating, removing, reading and writing files and directories.
+
+\subsection{Iteration 6: Documentation and ABISS research}
+
+\textbf{18 - 29 April}
+
+\subsubsection{Activities}
+
+Since the last iterations were all around designing and coding the filesystem, this iteration was mainly spent on running tests on the filesystem and starting writing the reports.
+
+Along with this documentation, effort was made to look into the \wi{ABISS} system. ABISS, the Active Block I/O Scheduling System, is a Linux kernel subsystem which can provide realtime disk scheduling to applications \cite{ABISS}. In order to do this, some filesystem information must be passed to ABISS. Some time of this iteration was spent to review ABISS, and mainly the integration between filesystems and ABISS.
+
+\subsubsection{Results}
+
+Most of the I/O chapter of the technical report was written, along with some minor parts of the LIMEFS chapter. The graduation report was started, but only the table of contents was written and submitted for review.
+
+The operation of the ABISS framework was quite clear, along with the knowledge needed to integrate the filesystem with ABISS.
+
+\subsection{Iteration 7: More documentation, cleanups}
+
+\textbf{2 - 13 May}
+
+\subsubsection{Activities}
+
+This iteration was all about documentation and cleaning up. The technical report was written during this time, and some time invested to clean up the existing codebase.
+
+\subsubsection{Results}
+
+The LIMEFS chapter of the technical report was mostly finished, along with huge parts of the implementation chapter. The codebase was massively cleaned up after careful evaluation with Mischa.
+
+\subsection{Iteration 8: Fragmentation study, even more reports}
+
+\textbf{16 - 27 May}
+
+\subsubsection{Activities}
+
+Ad has been conducting some experiments to see how file fragmentation would affect the filesystem during normal operations. This tool would simulate an extent-based filesystem housing a lot of files. Should the filesystem be filled, a file would randomly be deleted, making space for the new data.
+
+During this iteration, the technical report was finished and submitted to Mischa for reviewing. The remaining time was spent finishing this report.
+
+\subsubsection{Results}
+
+By the end of this iteration, the file fragmentation section of the technical report was written and the rest of the report was finished. It was then submitted for review.
+
+A draft of this report itself was also finished during this iteration and submitted for review.
+
+\emph{At the time of writing, iterations 9 and 10 were not yet started. Therefore, the descriptions given here are the planned activities}
+
+\subsection{Iteration 9: Finishing up}
+
+\textbf{30 May - 10 June}
+
+\subsubsection{Activities}
+
+During this iteration, all reports were finished and submitted to Fontys. Work on the presentation began, as well as more and more tests to determine the bottlenecks of the filesystem as well as its performance.
+
+\subsection{Iteration 10: The Living End}
+
+\textbf{13 - 24 June}
+
+\subsubsection{Activities}
+
+From output gathered by the tests, the filesystem was further optimized. The graduation presentation was presented at Fontys. The remaining time was spent on finishing the project.

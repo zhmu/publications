@@ -1,0 +1,31 @@
+\chapter{Project}
+\label{project}
+\index{project}
+
+During the first month of the project, I've been installing my computers and clarifying my assignment. As later outlined in section \ref{startup}, there were three options possible. During this month, all these options were carefully evaluated by the end of this month in order to determine the goal of the internship. The definitive project outlined in the next paragraph.
+
+The project is about designing and implementing a real time file system for the Linux operating system. There are already a lot of filesystems around, but this filesystems has the following distinctive features:
+
+\begin{itemize}
+\item Disk block size \\
+Instead of traditional sectors, this file system uses a user-definable block size for all disk transactions. This is designed to improve performance.
+\item Larger data block size \\
+Whereas traditional filesystems usually tend to use 64KB per data block, this filesystem uses a default of 4MB blocks. This helps avoiding overhead.
+\item Meta-data in memory \\
+Unlike traditional filesystems, this filesystem will keep all meta-data in memory. This ensures no disk access is needed to fetch this information. Most administration is built on-the-fly upon mount time.
+\item Extent structure \\
+The filesystem uses an \wi{extent} structure to maintain data block allocations.
+\end{itemize}
+
+This filesystem must be implemented within the kernel of the Linux operating system. Furthermore, the following utilities must be implemented as well:
+
+\begin{itemize}
+\item Make FileSystem (mkfs) \\
+This will create new filesystem structures on a given disk.
+\item FileSystem ChecK (fsck) \\
+Used to validate the internal filesystem structures and repair the filesystem as needed.
+\item Dump FileSystem (dumpfs) \\
+Displays the complete filesystem structures as they are stored on the disk. Mainly used as a debugging tool.
+\end{itemize}
+
+Last but not least, the entire filesystem must be documented in a technical report. This report can be found as appendix A.

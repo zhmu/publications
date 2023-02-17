@@ -1,0 +1,113 @@
+\chapter{Showtime}
+\label{ch:showtime}
+
+\section{The model}
+\label{model:showtime}
+
+The desired goal of this phase is pretty obvious; the resulting system should only have two phases: one in which all lights are set up to display figure $0$ and one in which all lights are set up to display figure $1$. In the previous section, we have declared formulas that determine whether the light should be switched on or off, so we introduce an action \TT{updateLight} with parameters $n,f$ which indicates that node number $n$ updates its light to reflect the output of $light(pos_n, min_n, max_n, f)$, where $pos_n$ is the position of node $n$, $min_n$/$max_n$ are the minimum/maximum coordinates stored by node $n$ - whether this actually switches the light on or off doesn't need to be considered in the model.
+
+We also need some way to communicate new status updates, so we introduce actions \TT{sendUpdate}, \TT{recvUpdate} and \TT{commUpdate}, all with parameters $num,leaderid,figure$, where $num$ is the node number to which the update is sent, $leaderid$ is the id that the sending node considers to be the leader and $figure$ is the new figure to be displayed. As usual, \TT{commUpdate} is a communication action between \TT{sendUpdate} and \TT{recvUpdate}.
+
+The algorithm states that the leader should initiate the procedure by sending figure updates every two seconds. To this end, we introduction an action \TT{timer} that is issued when the two seconds have passed. Finally, the algorithm is also capable of resetting the system, so we introduce a \TT{reset} action.
+
+Summarizing, we have the following actions:
+
+\begin{itemize}
+\item $\TT{sendUpdate(num,leaderid,figure)} \comm \TT{recvUpdate(num,leaderid,figure)}\\
+       \rightarrow \TT{commUpdate(num,leaderid,figure)}$ \\
+These actions are used to subsequently send, receive an communicate a figure update.
+\item \TT{updateLight(n,f)} \\
+This action is issued if node number $n$ updates its light to display figure $f$.
+\item \TT{timer} \\
+This action can be issued every two seconds, it is used to model the two-second timer.
+\item \TT{reset} \\
+If any node receives a message stating a leader that conflicts with its own leader, a \TT{reset} action is initiated.
+\end{itemize}
+
+We now introduce the model:
+
+\begin{codeverb}
+proc    Smartpixel4init(num:Nat) =
+         updateLight(num,0) .
+         Smartpixel4(num,num==LEADERNUM,mapNodeId(LEADERNUM),0,0,calcCoord(num));  @label{sp4:updstate1}
+
+        Smartpixel4(num:Nat,actAsLeader:Bool,leaderid,figure,s:Nat,log:Coord) =
+\end{codeverb}
+
+We introduce the \TT{Smartpixel4init(num)} process, which used to initialize a node. This is used to pass predefined parameters to the \TT{Smartpixel4} processes in order to keep the initialization code readable. It remains to specify the main \TT{Smartpixel4} process:
+
+\begin{codeverb}
+(s<4&&neighbornum(num,rr(s,RotationList.num))==num) -> intern .
+    Smartpixel4(num,actAsLeader,leaderid,figure,s+1,log) +
+(s<4&&neighbornum(num,rr(s,RotationList.num))!=num) ->
+    sendUpdate(neighbornum(num,rr(s,RotationList.num)),
+     if(actAsLeader,mapNodeId(num),leader_id),figure) .
+    Smartpixel4(num,actAsLeader,leaderid,figure,s+1,log) +
+\end{codeverb}
+
+If we need to send a status update in some direction, we do so - however, the leader must always use its own id while sending. This corresponds to lines \ref{sp4:timer2} and \ref{sp4:send2} of the algorithm.
+
+\begin{codeverb}
+sum n,a:Nat . (n > leaderid) -> recvUpdate(num,n,a) . reset +
+\end{codeverb}
+
+If a status update is received with a leader id that is higher than what we currently have, we initiate a \TT{reset} action, as is performed by line \ref{sp4:leadererr} of the algorithm.
+
+\begin{codeverb}
+sum n,a:Nat . (n <= leaderid && a != figure) -> recvUpdate(num,n,a) .
+        updateLight(num,a) .
+        Smartpixel4(num,actAsLeader,n,a,0,log) + @label{sp4:updstate2}
+\end{codeverb}
+
+If we receive an update with the correct leader id, we update our light status and reset all sender directions, which means we will transmit the new status to our neighboring nodes (algorithm lines \ref{sp4:sendfollow} - \ref{sp4:send2})
+
+\begin{codeverb}
+sum n:Nat . (n <= leaderid) -> recvUpdate(num,n,figure) .
+        Smartpixel4(num,actAsLeader,n,figure,log,s) +
+\end{codeverb}
+
+If we receive the current figure we are displaying with an equal or lower leader id, update our leader id and continue (algorithm line \ref{sp4:ignupdate})
+
+\begin{codeverb}
+(actAsLeader) -> timer .       @label{sp4:timer}
+           updateLight(num,(figure+1) mod 2) .
+           Smartpixel4(num,actAsLeader,leaderid,(figure+1) mod 2,0,log);
+\end{codeverb}
+
+If we act as leader, we must initiate new state changes. This is done by updating our own initial light and figure and setting $s = 0$, so we will communicate this with our neighbors (algorithm lines \ref{sp4:timer1} - \ref{sp4:timer2}).
+
+\begin{codeverb}
+proc    System =
+         allow({commUpdate,reset,updateLight,timer}, (
+          comm({sendUpdate|recvUpdate->commUpdate}, (
+             Smartpixel4init( 0) || Smartpixel4init( 1) || Smartpixel4init( 2) ||
+             Smartpixel4init( 3) || Smartpixel4init( 4) || Smartpixel4init( 5) ||
+             Smartpixel4init( 6) || Smartpixel4init( 7) || Smartpixel4init( 8)
+          ))
+         ));
+
+init    System;
+\end{codeverb}
+
+We start by specifying the allowed actions; this implies we block explicit \TT{recvUpdate} and \TT{sendUpdate} actions. We continue by specifying the communication actions as before and finally, we list the Smartpixel processes.
+
+\section{The results}
+
+The idea of the showtime phase is that all nodes end up in a state where all nodes display figure $0$, followed by a timeout, followed by all nodes displaying figure $1$, etc. 
+\\
+\begin{property} \label{prop:showtime}
+The algorithm $Showtime$ as modeled in Section \ref{model:showtime} results in all nodes alternating between a state in which they display figure $0$ and a state in which they display figure $1$; transitions between these states are made using \TT{timer} actions.
+\end{property}
+
+\begin{proof}
+First of all, we note that by line \ref{sp4:timer}, a \TT{timer} action will cause the figure to be updated and this update communicated with neighboring nodes. Thus, what we want to show is that the system will keep performing \TT{timer} actions: it cannot happen that this action is suddenly blocked or that the system is deadlocked. To this end, we generate a labeled transition system in which only the \TT{timer} and \TT{reset} actions are visible. This model is illustrated in Figure \ref{fig:showtimesvg}.
+
+\begin{statespace}{fig:showtimesvg}{Showtime in which only the \TT{timer} and \TT{reset} actions are visible}
+ \initialstate{n0};
+ \draw [arrow,loop right] (n0) to node [auto] {timer} (n0);
+\end{statespace}
+
+We observe that \TT{timer} actions can always be performed, as claimed.
+\end{proof}
+
+Property \ref{prop:showtime} can also be expressed using modal formula $[{\it true}^{\star} ] \langle {\it true}^{\star} \cdot {\it timer} \rangle {\it true}$: in any state, it must be possible to eventually perform a \TT{timer} action. As expected, this formula holds as this is indeed the case.

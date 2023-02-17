@@ -1,0 +1,223 @@
+\chapter{Leadership election}
+\label{ch:leaderelection}
+
+Before we discuss any model, we have to consider a very important question: what exactly do we want to show? The goal of any model is to determine whether the system does `what it should do', so let us begin by defining what it should do: our goal is, to determine whether the leadership election algorithm as outlined in Section \ref{algo:leaderelection} always causes exactly one node to consider itself as a leader and whether all other nodes agree on the same leader. As outlined previously, we will only consider ideal circumstances throughout each individual algorithm model at first, as we want to determine whether the algorithms are correct at all. Analysis involving unreliable communication and modifying the network by adding or removing nodes will be covered in Chapter \ref{ch:overallsystem}.
+
+As mCRL2 has difficulty analyzing timed models, we present two different models in this section: the first model is constructed in mCRL2 whereas the second model is constructed using UPPAAL.
+
+\section{mCRL2 model}
+\label{model:elect}
+
+% wat is het algorithme in gebruik?
+% basis idee achter hoe het model hiervan werkt
+% bewijzen waarom het werkt
+
+Naturally, we need a process for each SmartPixel - and since all SmartPixels have identical behavior, we just use the same process multiple times in parallel. We introduce actions \TT{sendID}, \TT{recvID} and \TT{commID} with parameters \emph{num,id} - these actions are used to respectively send, receive and communicate id \emph{id} to node number \emph{num}.
+
+It seems we are on the right track now: each node can communicate what it believes to be the leader id to any adjacent node and this can be handled accordingly. However, one issue remains: the protocol specification states that after a few seconds, the leader election phase is done and thus a node that still considers itself to be the leader must become the leader. Unfortunately, the mCRL2 tools have difficulties analyzing models which involve timing. Thus, we try to prevent timing for now by coming up with some way to determine whether the desired result has been achieved; strictly speaking, we are checking whether the desired result \emph{will} occur, we are not considering \emph{when} it occurs. The latter can only be checked by analyzing the timed models, which we will attempt later on. By checking whether the desired result will occur we are actually proving correctness of the algorithm, which is desirable indeed.
+
+Analyzing the algorithm reveals that at the end of the leader election phase, any node that has its own id as leader id will become a leader (line \ref{elect:checkldr}) - in other words, the node has not received an id which is lower than its own id. From this observation, it follows that if a node has ever received an id lower than its own id, it will \emph{never} become a leader. Thus, if we introduce a monitoring process that counts the number of nodes that receive a lower leader id while they still consider themselves as the leader, we are in business: if we have $n$ nodes in the network, the election phase ends if we have received word that $n-1$ nodes will not become leader.
+
+To this end, we introduce the \TT{gotLeader} and \TT{monLeader} actions, all with parameters $num,id,initial$ which communicate together as \TT{commLeader}: these are used to indicate that node number $num$ received leader id $id$. The $initial$ boolean is $true$ if receiving $id$ results in the node demoting itself to an ordinary node: it will no longer become leader (We note that although it may seem we provide more information to the monitor than is necessary, this approach will allow us to check whether all nodes have the same leader later on by applying only minor changes to the leader process). The effect is that per node, $initial$ is $true$ at most one time: a node will initially consider itself leader and can only demote itself if it believed it was a leader. A process called \TT{LeaderMon} uses $monLeader$ actions to determine the number of nodes demoting themselves to ordinary nodes, by counting the number of $monLeader$ actions where $initial = true$. Once all but one node have declared they will not become leader, there is only a single node that tries to become leader. This is modeled using the \TT{tryLeader} and \TT{timeout} actions which communicate together as \TT{leader}: thus, a \TT{tryLeader} action can only be performed if there is a \TT{timeout} action available. This action is performed by \TT{LeaderMon} if all but one of the nodes have indicated they will not be a leader.
+
+It must be noted that the above reasoning does not seem to confirm to the algorithm we are attempting to prove correct. Indeed, the algorithm as presented has absolutely no notion of how many nodes there are, let alone if they have a leader or not. Fortunately, this does not matter: we intend to show that always one node elects itself as leader. In our model, the final node only becomes a leader if all other nodes do not elect themselves as leader, which is essentially the same as waiting a fair period of time before concluding that since there apparently is no one else available, this node must be the leader.
+
+Summarizing, we have the following actions:
+
+\begin{itemize}
+\item $\TT{gotLeader(num,leaderid,initial}) \comm \TT{monLeader(num,leaderid,initial)} \rightarrow \\ \TT{commLeader(num,leaderid,initial)}$ \\
+The pair of \TT{gotLeader} and \TT{monLeader} actions are used to indicate that node number $num$ believes $leaderid$ to be the leader. $initial$ is true the first time the node has decided it will not become leader.
+\item $\TT{sendID(num,id)} \comm \TT{recvID(num,id)} \rightarrow \TT{commID(num,id)}$ \\
+These actions are used to send leader id $id$ to node number $num$.
+\item $\TT{tryLeader(n)} \comm \TT{timeout(n)} \rightarrow \TT{leader(n)}$ \\
+The \TT{tryLeader} action is issued by a node if it attempts to become leader; it is used in conjunction with \TT{timeout}, which is generated by the \TT{LeaderMon} process. The $n$ is the id of the node that tries to become leader.
+\end{itemize}
+
+We shall now illustrate the main \TT{Smartpixel1} process:
+
+\begin{codeverb}
+proc	Smartpixel1init(num:Nat) = @label{sp1:spinit}
+	 Smartpixel1(num,mapNodeId(num),0); 
+
+	Smartpixel1(num,leader_id,s:Nat) = @label{sp1:spproc}
+\end{codeverb}
+
+Line \ref{sp1:spinit} defines the \TT{Smartpixel1init} process - basically, this process becomes a \TT{Smartpixel1} process for a given node number $num$. The purpose of this process is to keep the initialization compact by providing defaults: each node considers itself as leader and has not yet sent any messages. Line \ref{sp1:spproc} defines the \TT{Smartpixel1} process. The parameters are the node number $num$ and the leader id $leader\_id$, plus a variable $s$ containing the next direction we need to send our leader id to.
+
+\begin{codeverb}
+(s<4&&(neighbornum(num,rr(s,RotationList.num))==num)) ->
+    intern . Smartpixel1(num,leader_id,s+1) +
+(s<4&&(neighbornum(num,rr(s,RotationList.num))!=num)) ->
+    sendID(neighbornum(num,rr(s,RotationList.num)),leader_id) .
+     Smartpixel1(num,leader_id,s+1) +
+\end{codeverb}
+
+If the leader id has not been communicated to a neighbor in direction $s$, we use the \TT{sendID} action as illustrated above to send the notification to the specified neighbor node. As \TT{commID} is a communication action, it is only permitted if there is a corresponding \TT{recvID} with the same arguments, so if there is no such neighbor we perform an \TT{intern} action. This corresponds to line \ref{elect:checksend} - \ref{elect:endsend} of the algorithm.
+
+\begin{codeverb}
+sum rid:Nat . (rid<leader_id) -> recvID(num,rid) .
+                                  gotLeader(num,rid,mapNodeId(num)==leader_id) . @label{sp1:gotleader}
+	                          Smartpixel1(num,rid,0) +
+\end{codeverb}
+
+As the algorithm dictates, if we receive any leader id $rid$ that is lower than what we currently consider as our leader ($rid < leader\_id$), we claim we have a leader by issuing the $gotLeader$ action where $initial = true$ if we considered ourself to be the leader ($mapNodeId(num) = leader\_id$) and $false$ otherwise. We finally update our process state by using $rid$ instead of $leader\_id$ as the leader id parameter, and $s = 0$ since we need to send this new leader id to our neighbors, like the algorithm requires (lines \ref{elect:recv} - \ref{elect:recvdone})
+
+\begin{codeverb}
+sum rid:Nat . (rid>=leader_id) -> recvID(num,rid) .
+                                   Smartpixel1(num,leader_id,s) +
+\end{codeverb}
+
+If we receive the same leader or a leader that has a higher id than what we currently consider as the leader ($rid \geq leader\_id$), we do not update our internal state at all (lines \ref{elect:ign1} - \ref{elect:ign2}).
+
+\begin{codeverb}
+(mapNodeId(num)==leader_id) -> tryLeader(mapNodeId(num));
+\end{codeverb}
+
+If we believe we are the leader, we can perform a \TT{tryLeader} action; this is only possible if there is a subsequent \TT{timeout} action available since these communicate. This is outlined in line \ref{elect:checkldr} of the algorithm.
+
+Where are the subsequent \TT{timeout} actions generated? These are performed by a monitoring process \TT{LeaderMon}. The idea is that this process collects the number of \TT{gotLeader} actions with $initial = true$, these are generated if a node decides it will not become a leader, which happens at most a single time per process, as previously argued. Since there are $n$ nodes in total, the \texttt{LeaderMon} process should wait for $n - 1$ \TT{gotLeader} actions before it may perform \TT{timeout} actions, which unblock \TT{tryLeader} actions and thus allowing nodes to assume the role of leadership. As \TT{gotLeader} and \TT{monLeader} communicate together, the \TT{LeaderMon} process should simply perform \TT{monLeader} actions:
+
+\begin{codeverb}
+LeaderMon(n:Int) =
+ sum a,b:Nat . monLeader(a,b,true) . LeaderMon(n-1) +
+ sum a,b:Nat . monLeader(a,b,false) . LeaderMon(n) +
+\end{codeverb}
+
+The first line simply defines the \TT{LeaderMon} process. The next two lines try to perform \TT{monLeader} actions, which are only possible if there is a corresponding \TT{gotLeader} action. If a node tells us it won't become leader (that is, the $initial$ parameter is $true$), we decrease the number of processes we are waiting for, since such an action will only happen a single time. If a \TT{gotLeader} action is performed by a process that already gave up its leadership role (the $initial$ parameter is $false$), we do not alter the number of processes and continue.
+
+\begin{codeverb}
+ sum a:Nat . (n<=0) -> timeout(a).LeaderMon(n);
+\end{codeverb}
+
+Finally, if we are no longer waiting for processes, we perform \TT{timeout} actions with parameter $a$ whenever possible, for any $a$ as we want to allow any remaining node id to become leader. These will cause the remaining processes that consider themselves as leader to be able to issue an \TT{tryLeader} action, which will become visible using the communication variant \TT{leader}.
+
+It remains to specify the initializing process:
+
+\begin{codeverb}
+proc    System =
+         allow({commID,leader,commLeader,timeout}, ( @label{sp1:allow}
+          comm(sendID|recvID->commID,tryLeader|timeout->leader, @label{sp1:comm}
+           gotLeader|monLeader->commLeader, ( 
+            Smartpixel1init( 0) || Smartpixel1init( 1) || Smartpixel1init( 2) ||
+            Smartpixel1init( 3) || Smartpixel1init( 4) || Smartpixel1init( 5) ||
+            Smartpixel1init( 6) || Smartpixel1init( 7) || Smartpixel1init( 8) ||
+            LeaderMon(DIM * DIM - 1)
+           ))
+          ));
+
+init    System; @label{sp1:init}
+\end{codeverb}
+
+Line \ref{sp1:allow} specifies the actions we allow. We use this to block the explicit \TT{sendID}, \TT{recvID}, \TT{gotLeader}, \TT{monLeader}, \TT{tryLeader} and \TT{timeout} actions, as we are only interested in their communication variants. The next line specifies the communication between actions, which we have outlined previously. Finally, we list the processes: this is a $3 \times 3$ grid, totaling $9$ nodes. Thus, our monitor has to observe all but one node deciding they will not become leader before we unblock the \TT{leader} action.
+
+\section{mCRL2 results}
+
+As outlined previously, we want to show two different properties: only one leader gets elected, and all nodes agree on the same leader. We introduce two properties, which we prove by inspecting the mCRL2 models.
+\\
+\begin{property} \label{prop:oneleader}
+The algorithm $LeaderElection$ as modeled in Section \ref{model:elect} always causes exactly one node to consider itself as the leader
+\end{property}
+
+\begin{proof}
+We generate a labeled transition system of the model, where we hide everything except the $leader$ actions. Generating the state space using rooted branching bisimilarity (which is the equivalence relation we shall use from now on) of a $3 \times 3$ configuration yields Figure \ref{fig:elect1}.
+
+\begin{statespace}{fig:elect1}{Leader election for Property \ref{prop:oneleader}, in which only the $leader$ action is visible}
+ \initialstate{n0};
+ \node (n1) [state,right of=n0] {1};
+ \draw [arrow] (n0) to node [auto] {leader(0)} (n1);
+\end{statespace}
+
+We observe that there is only one path that always results in node $0$ becoming the leader, as claimed.
+\end{proof}
+
+Property \ref{prop:oneleader} can also be expressed using two modal formulas (we disregard the parameters of the $leader$ action here, as these are not important):
+
+\begin{itemize}
+\item $[{\it true}^{\star} \cdot {\it leader} \cdot {\it true}^{\star} \cdot {\it leader}] {\it false}$ \\
+This expresses it cannot happen that two consecutive \TT{leader} actions occur.
+\item $[ {\overline{\it leader}}^{\star} ] \langle {\it true}^{\star} \cdot {\it leader} \rangle {\it true}$ \\
+If a \TT{leader} action has not yet occured, it will eventually occur.
+\end{itemize}
+
+As expected, checking these formulas in the original model without hiding any actions results in all of them holding. We need the second formula to show that the \TT{leader} action indeed occurs in the model - if this was not the case, the first formula would always be true.
+
+This leads us to prove our second statement:
+\\
+\begin{property} \label{prop:sameleader}
+The algorithm $LeaderElection$ as modeled in Section \ref{model:elect} results in all nodes eventually ending up in a state where they agree upon the same leader.
+\end{property}
+
+\begin{proof}
+In our current model, a node will perform a \TT{gotLeader(id,rid,id==leader\_id)} action once it receives a lower leader id $rid$ (refer to line \ref{sp1:gotleader} of the algorithm) - this action is then used to unblock nodes from assuming leadership. However, we can also replace this action by \TT{gotLeader(id,rid,rid==0)}, which means the \TT{timeout} will be blocked until all non-leader nodes believe that node $0$ is their leader. The resulting state space is shown in Figure \ref{fig:elect2}.
+
+\begin{statespace}{fig:elect2}{Leader election for Property \ref{prop:sameleader} in which only the $leader$ action is visible}
+ \initialstate{n0};
+ \node (n1) [state,right of=n0] {1};
+ \draw [arrow] (n0) to node [auto] {leader(0)} (n1);
+\end{statespace}
+
+We observe that the \TT{leader} action will always be performed, which means all non-leader nodes consider node $0$ as their leader, which is what we claimed.
+\end{proof}
+
+If we were to use a modal formula, we need to check that $[ {\overline{\it leader}}^{\star} ] \langle {\it true}^{\star} \cdot {\it leader} \rangle {\it true}$ holds, which is indeed the case.
+
+\section{UPPAAL model}
+
+As mentioned previously, mCRL2's current toolkit is not capable of analyzing timed models. Thus, we introduce a model in the UPPAAL modeling toolset \cite{bengtsson95uppaal}. In UPPAAL, systems are described by networks of timed automata. We will not discuss the precise definition of a timed automaton here, but rather illustrate the overall idea: an automaton consists of a set of states (visualized by circles) and transitions between those states (visualized by arrows). The first state the system starts in is called the \emph{initial state}, which is visualized by a double circle.
+
+States can have \emph{invariants} attached to them: these are conditions that must hold as long as the system resides in that state. Consequently, if the invariant condition no longer holds, a transition to another state must be taken. If a state contains a condition, it is placed within the circle below the horizontal line.
+
+Transitions can have up to four different attributes, all of which are optional. There may be an \emph{update}, consisting of a $variable \leftarrow expression$ combination: once the transition has been taken, the contents of $variable$ is set to $expression$. There may also be a \emph{guard}, which is a predicate that must be true for this transition to be taken. For example, if the condition is $z < 5$, the transition may only be taken if the value of $z$ is smaller than $5$. Another possible attribute is a \emph{selection} value, which represents choice of a value out of some domain: for example, if we have $b: Bool$, this indicates variable $b$ can assume any value from the $Bool$ domain, so in this case, $b = true$ or $b = false$. This $b$ can subsequently be used in other attributes. Finally, there may be \emph{synchronization}, which indicates interaction between multiple processes. There are two flavors: $comm!$ and $comm?$ - the first one indicates a $comm$ communication is outgoing, whereas the latter indicates a $comm$ communication is incoming. For example, if one process has a transition which contains $comm!$ and all other attributes are satisfied, another process that has a transition that contains $comm?$ and also having all other attributes satisfied will allow both transitions to be taken; this makes it possible to model communication between multiple processes. Synchronizations can have parameters as well: if some process contains a transition with $comm[true][false]!$ and another process has selection $b, c : Bool$ and $comm[b][c]?$ could cause \emph{both} transitions, the sending process as well as the receiving process, to be taken where $b = true$ and $c = false$. If there is a $comm!$ communication without a $comm?$ communication in another process, the process issuing the $comm!$ is not allowed to perform the transition.
+
+In Figure \ref{fig:upleader}, a SmartPixel performing leader election is illustrated, where all conditions are always in a fixed order: selection, guard, synchronization and update. For each SmartPixel, $id$ is both the unique id associated with the SmartPixel as well as the number in the grid, $lid$ is the id which the pixel considers to be the leader (initially, a node considers itself to be the leader due to the $lid \leftarrow id$ assignment) and $y$ and $z$ are clock variables: these are initially zero, and will increase as time passes. However, they can be reset back to zero; this makes it convenient to model time relative to some event. The $sendID[a][id]$ communication represents sending and receiving id $a$ to node number $id$. As in the mCRL2 case, we introduce $nn(id,s)$, for which it holds that $nn(id,s) = neighbornum(id,s)$. Finally, we have a type $NodeSet$, which contains all possible node id's; for example, in a $3 \times 3$ network, $NodeSet = \{ 0, \dots, 8 \}$. The complete model is illustrated in Figure \ref{fig:upleader}.
+
+\begin{uppaal}{fig:upleader}{Leader election model in UPPAAL}
+  \initialinvstate{init}{\nodepart{lower} \small $z < 1$};
+  \node (start)  [invstate,node distance=7cm,right of=init] {Start \nodepart{lower} \small $z \leq 12$};
+  \node (normal) [state,above left of=start,node distance=5cm] {Normal};
+  \node (leader) [state,below left of=start,node distance=5cm] {Leader};
+  \node (s1)     [invstate,right of=start] {\nodepart{lower} \small $y \leq 1$};
+  % initial->start
+  \draw [arrow,text=\upUPDATE] (init) to node (a1) [auto] {lid $\leftarrow$ id, z $\leftarrow$ 0, s $\leftarrow 0$} (start);
+  % start->start: sendid[j]? with j < lid
+  \draw [arrow,loop above,min distance=4cm,text=\upUPDATE] (start) to node (a2) [auto] {lid $\leftarrow$ j, s $\leftarrow$ 0} (start);
+  \draw [text=\upSYNC] (a2) + (0, 0.5) node {sendID[j][id]?};
+  \draw [text=\upGUARD] (a2) + (0, 1.0) node {j $<$ lid};
+  \draw [text=\upSELECT] (a2) + (0, 1.5) node {j: NodeSet};
+  % start->s1: sendid!
+  \draw [arrow,min distance=4cm,text=\upSYNC] (start) to node (a3) [auto] {sendID[lid][nn(id,s)]!} (s1);
+  \draw [text=\upUPDATE] (a3) + (0, -0.5) node {s $\leftarrow$ s+1, y $\leftarrow$ 0} (start);
+  \draw [text=\upGUARD] (a3) + (0,  0.5) node {s $<$ 4 $\land$ nn(id,s) $\neq$ id};
+  % start->s1: ignore
+  \draw [arrow,min distance=4cm,bend right,text=\upGUARD] (start) to node (a5) [auto] {s $<$ 4 $\land$ nn(id,s) = id} (s1);
+  \draw [text=\upUPDATE] (a5) + (0, -0.5) node {s $\leftarrow$ s+1, y $\leftarrow$ 0} (start);
+  % s1->start
+  \draw [arrow,text=\upUPDATE] (s1) to node [auto] {z $\leftarrow$ 0} (start);
+  % start->start: sendid[j]? with j >= lid
+  \draw [arrow,loop below,min distance=4cm,text=\upSELECT] (start) to node (a4) [auto] {j: NodeSet} (start);
+  \draw [text=\upGUARD] (a4) + (0, -0.5) node {j $\geq$ lid};
+  \draw [text=\upSYNC] (a4) + (0, -1.0) node {sendID[j][id]?};
+  % start->normal
+  \draw [arrow,text=\upGUARD] (start) to node [auto] {id $\neq$ lid $\land$ z$>$10 $\land$ s=4} (normal);
+  % start->leader
+  \draw [arrow,text=\upGUARD] (start) to node [auto,swap] {id=lid $\land$ z$>$10 $\land$ s=4} (leader);
+\end{uppaal}
+
+\section{UPPAAL results}
+
+As previously outlined, UPPAAL allows us to formulate requirements as a series of temporal logic formula's; the logic used is a subset of computational tree logic \cite{huth04logic}. The major difference is that modal operators may not be nested: each formula must contain only a single modal operator with either a $\Diamond$ or a $\Box$, the remainder of the formula cannot have any modal operators. To this end, we have formulated the following formula's:
+
+\begin{enumerate}
+\item $A \Diamond \forall_{i:NodeSet} (Node(i).Leader \lor Node(i).Normal)$ \\
+A state in which all nodes are in the $Leader$ or $Normal$ state is eventually reachable.
+\item $A \Box \forall_{i:NodeSet} \forall_{j:NodeSet} (Node(i).Leader \land Node(j).Leader \Rightarrow i = j)$ \\
+There is never more than a single node in the $Leader$ state.
+\item $A \Diamond \exists_{i:NodeSet} Node(i).Leader$ \\
+Eventually, there will be at least a single node in $Leader$ state.
+\item $A \Diamond \forall_{i:NodeSet} Node(i).lid = 0$ \\
+All nodes end up in a state where they consider node id $0$ to be their leader.
+\end{enumerate}
+
+We note that items 2 and 3 together imply that eventually, there has to be exactly one leader. Combined with Property \ref{prop:oneleader}, the system has to end in a state where all but one nodes are in the $Normal$ state and a single node is in the $Leader$ state. Finally, item 4 insists that all nodes agree on the same leader.
+
+Asking UPPAAL to perform verification of these formulas yields the conclusion that all these properties are satisfied.

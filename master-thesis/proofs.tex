@@ -1,0 +1,236 @@
+\chapter{Proofs}
+\label{apx:proofs}
+
+This appendix contains all derivations and proofs used throughout the thesis.
+\\
+\begin{lemma} \label{lemma:abcommc}
+$(a \cdot b) \comm c =  a \cdot (b \cdot c + c \cdot b + b \comm c) + c \cdot a \cdot b + a \comm c \cdot b$
+\end{lemma}
+
+\begin{proof}
+\begin{derivation}{$(a \cdot b) \comm c$}
+\equ{$M$}{$(a \cdot b) \lmerge c + c \lmerge (a \cdot b) + a \cdot b \comm c$}
+\equ{$LM3, LM1, S5$}{$(a \before c) \cdot (b \comm c) + (c \before (a \cdot b)) \cdot (a \cdot b) + a \comm c \cdot b$}
+\equ{$TB1, M$}{$a \cdot (b \lmerge c + c \lmerge b + b \comm c) + ((c \before a) \cdot (a \cdot b)) + a \comm c \cdot b$}
+\equ{$LM1, TB1$}{$a \cdot ((b \before c) \cdot c + (c \before b) \cdot b + b \comm c) + c \cdot a \cdot b + a \comm c \cdot b$}
+\equ{$TB1$}{$a \cdot (b \cdot c + c \cdot b + b \comm c) + c \cdot a \cdot b + a \comm c \cdot b$}
+\end{derivation}
+\end{proof}
+
+\begin{lemma} \label{lemma:d0lmerge1}
+$\delta \at 0 \lmerge X = \delta \at 0$
+\end{lemma}
+\begin{proof}
+
+\begin{derivation}{$\delta \at 0 \lmerge X$}
+\equ{LM6}{$(\delta \lmerge X) \at 0$}
+\equ{T5}{$0 > 0 \rightarrow (\delta \lmerge X) \at 0$}
+\equ{T2}{$0 > 0 \rightarrow (\delta \lmerge X) \at 0 \diamond \delta \at 0$}
+\equ{Cond2}{$\delta \at 0$}
+\end{derivation}
+\end{proof}
+\\
+\begin{lemma} \label{lemma:d0comm}
+$\delta \at 0 \comm X = \delta \at 0$
+\end{lemma}
+
+\begin{proof}
+Similar to proof of Lemma \ref{lemma:d0lmerge1}, using axiom S9.
+\end{proof}
+\\
+\begin{lemma} \label{lemma:xbefored0}
+$\alpha \before \delta \at 0 = \delta \at 0$
+\end{lemma}
+
+\begin{proof}
+\begin{derivation}{$\alpha \before \delta \at 0$}
+\equ{TB3}{$\sum_{u:\TTT} u < 0 \rightarrow (\alpha \at u) \before \delta$}
+\equ{T2}{$\sum_{u:\TTT} u < 0 \rightarrow (\alpha \at u) \before \delta \diamond \delta \at 0$}
+\equ{Cond2}{$\delta \at 0$}
+\end{derivation}
+\end{proof}
+\\
+\begin{lemma} \label{lemma:deltax}
+$\delta \at u \cdot X = \delta \at u$
+\end{lemma}
+
+\begin{proof}
+\begin{derivation}{$\delta \at u \cdot X$}
+\equ{TA4}{$(\delta \cdot X) \at u$}
+\equ{A7}{$\delta \at u$}
+\end{derivation}
+\end{proof}
+\\
+\begin{lemma} \label{lemma:parallelsym}
+$X \parallel Y = Y \parallel X$
+\end{lemma}
+
+\begin{proof}
+\begin{derivation}{$X \parallel Y$}
+\equ{M}{$X \lmerge Y + Y \lmerge X + X \comm Y$}
+\equ{S1}{$X \lmerge Y + Y \lmerge X + Y \comm X$}
+\equ{A1}{$Y \lmerge X + X \lmerge Y + Y \comm X$}
+\equ{M}{$Y \parallel X$}
+\end{derivation}
+\end{proof}
+\\
+\begin{lemma} \label{lemma:xlmergey} For TLPE's X and Y, it holds that \\
+\begin{tabular}{lll}
+$X(d_i) \lmerge Y(d_j)$ & $=$ & $\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$ \\
+& & $\hspace{1cm} \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))~+$ \\
+& & $\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) \geq t_j(d_j,e_j) \rightarrow$ \\
+& & $\hspace{1cm} \delta \at min(t_i(d_i,e_i),t_j(d_j,e_j)) \cdot (X(d_i) \parallel Y(d_j))$ \\
+\end{tabular}
+\end{lemma}
+
+\begin{proof}
+\begin{derivation}{$X(d_i) \lmerge Y(d_j)$}
+\equ{definition $X$}{$(\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot X(g_i(d_i,e_i))) \lmerge Y(d_j)$}
+\equ{LM5}{$\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot X(g_i(d_i,e_i)) \lmerge Y(d_j)$}
+\equ{T2}{$\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot X(g_i(d_i,e_i)) \diamond \delta \at 0 \lmerge Y(d_j)$}
+\equ{Cond}{$\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot X(g_i(d_i,e_i)) \lmerge Y(d_j) + \lnot c_i(d_i,e_i) \rightarrow \delta \at 0 \lmerge Y(d_j)$}
+\equ{Lemma \ref{lemma:d0lmerge1}, T1}{$\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot X(g_i(d_i,e_i)) \lmerge Y(d_j)$}
+\equ{LM3}{$\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow (\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \before Y(d_j)) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))$}
+\equ{definition $Y$}{$\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow (\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \before (\sum_{j \in I_y, e_j: E_j} c_j(d_j,e_j) \rightarrow \alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot Y(g_j(d_j,e_j))))$}
+\nxt{$\cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))$}
+\equ{TB6}{$\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow (\sum_{j \in I_y, e_j: E_j} \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \before (c_j(d_j,e_j) \rightarrow \alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot Y(g_j(d_j,e_j))))$}
+\nxt{$\cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))$}
+\equ{T2, TB5}{$\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow (\sum_{j \in I_y, e_j: E_j} \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \before (c_j(d_j,e_j) \rightarrow \alpha_j(d_j,e_j) \at t_j(d_j,e_j) \diamond \delta \at 0))$}
+\nxt{$\cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))$}
+\equ{Cond}{$\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow (\sum_{j \in I_y, e_j: E_j} c_j(d_j,e_j) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \before \alpha_j(d_j,e_j) \at t_j(d_j,e_j)$}
+\nxt{$+ \lnot c_j(d_j,e_j) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \before \delta \at 0) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))$}
+\equ{Lemma \ref{lemma:xbefored0}, T1}{$\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow (\sum_{j \in I_y, e_j: E_j} c_j(d_j,e_j) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \before \alpha_j(d_j,e_j) \at t_j(d_j,e_j))$}
+\nxt{$\cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))$}
+\equ{SUM4, Cond}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow (\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \before \alpha_j(d_j,e_j) \at t_j(d_j,e_j))$}
+\nxt{$\cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))$}
+\equ{TB3, TB1}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow (\sum_{u: \TTT} u < t_j(d_j,e_j) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \at u)$}
+\nxt{$\cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))$}
+\equ{TA1}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow (\sum_{u: \TTT} u < t_j(d_j,e_j) \rightarrow ((t_i(d_i,e_i) = u) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j)) \diamond \delta \at min(t_i(d_i,e_i),u)))$}
+\equ{$\exists_{u:\TTT} u < t_j(d_j,e_j)  \land t_i(d_i,e_i) = u \equiv t_i(d_i,e_i) < t_j(d_j,e_j)$, SUM1}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow (t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j)) \diamond \delta \at min(t_i(d_i,e_i),t_j(d_j,e_j)))$}
+\equ{Cond}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) \geq t_j(d_j,e_j) \rightarrow$}
+\nxt{$\delta \at min(t_i(d_i,e_i),t_j(d_j,e_j))$}
+\equ{Lemma \ref{lemma:deltax}}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) \geq t_j(d_j,e_j) \rightarrow$}
+\nxt{$\delta \at min(t_i(d_i,e_i),t_j(d_j,e_j)) \cdot (X(d_i) \parallel Y(d_j))$}
+\end{derivation}
+\end{proof}
+\\
+\begin{lemma} \label{lemma:xcommy} For TLPE's $X$ and $Y$, it holds that: \\
+\begin{tabular}{lll}
+$X(d_i) \comm Y(d_j)$ & = & $\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) = t_j(d_j,e_j) \rightarrow$ \\
+& & $\hspace{1cm} \alpha_i(d_i,e_i) \comm \alpha_j(d_j,e_j) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(g_j(d_j,e_j)))~+$ \\
+& & $\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) \neq t_j(d_j,e_j) \rightarrow$ \\
+& & $\hspace{1cm} \delta \at min(t_i(d_i,e_i),t_j(d_j,e_j)) \cdot (X(d_i) \parallel Y(d_j))$ \\
+\end{tabular}
+\end{lemma}
+
+\begin{proof}
+\begin{derivation}{$X(d_i) \comm Y(d_j)$}
+\equ{definition $X$ and $Y$}{$(\sum_{i \in I_x, e_i: E_i} c_i(d_i,e_i) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot X(g_i(d_i,e_i))) \comm$}
+\nxt{$(\sum_{j \in I_y, e_j: E_j} c_j(d_j,e_j) \rightarrow \alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot Y(g_j(d_j,e_j)))$}
+\equ{S8, S1, SUM4}{$\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} (c_i(d_i,e_i) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot X(g_i(d_i,e_i))) \comm$}
+\nxt{$(c_j(d_j,e_j) \rightarrow \alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot Y(g_j(d_j,e_j)))$}
+\equ{T2}{$\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} (c_i(d_i,e_i) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot X(g_i(d_i,e_i)) \diamond \delta \at 0) \comm$}
+\nxt{$(c_j(d_j,e_j) \rightarrow \alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot Y(g_j(d_j,e_j)) \diamond \delta \at 0)$}
+\equ{Cond}{$\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} (c_i(d_i,e_i) \rightarrow \alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot X(g_i(d_i,e_i)) \diamond \delta \at 0) \comm$}
+\nxt{$(c_j(d_j,e_j) \rightarrow \alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot Y(g_j(d_j,e_j))~+$}
+\nxt{$\lnot c_j(d_j,e_j) \rightarrow \delta \at 0)$}
+\equ{Lemma \ref{lemma:d0comm}, T1, S1}{$\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot X(g_i(d_i,e_i))  \comm \alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot Y(g_j(d_j,e_j))$}
+\equ{S6, S9, S1}{$\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \comm \alpha_j(d_j,e_j) \at t_i(d_i,e_i) \at t_j(d_j,e_j) \cdot (X(g_i(d_i,e_i)) \parallel Y(g_j(d_j,e_j)))$}
+\equ{TA1}{$\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow$}
+\nxt{$(t_i(d_i,e_i) = t_j(d_j,e_j)) \rightarrow \alpha_i(d_i,e_i) \comm \alpha_j(d_j,e_j) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(g_j(d_j,e_j)))$}
+\nxt{$\diamond~\delta \at min(t_i(d_i,e_i),t_j(d_j,e_j))$}
+\equ{Cond, Lemma \ref{lemma:deltax}}{$\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) = t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \comm \alpha_j(d_j,e_j) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(g_j(d_j,e_j)))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) \neq t_j(d_j,e_j) \rightarrow$}
+\nxt{$\delta \at min(t_i(d_i,e_i), t_j(d_j,e_j)) \cdot (X(d_i) \parallel Y(d_j))$}
+\end{derivation}
+\end{proof}
+\\
+\begin{proofenv}{Theorem \ref{theorem:xparallely}}For TLPE's $X$, $Y$ and $Z$ where $Z(d_i, d_j) = X(d_i) \parallel Y(d_j)$, it holds that: \\
+\begin{tabular}{lll}
+$Z(d_i, d_j)$ & = & $\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$ \\
+& & $\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot Z(g_i(d_i,e_i), d_j)~+$ \\
+& & $\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_j(d_j,e_j) < t_i(d_i,e_i) \rightarrow$ \\
+& & $\alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot Z(d_i, g_j(d_j,e_j))~+$ \\
+& & $\sum_{i \in I_x, e_i: E_i} \sum_{j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) = t_j(d_j,e_j) \rightarrow$ \\
+& & $\alpha_i(d_i,e_i) \comm \alpha_j(d_j,e_j) \at t_i(d_i,e_i) \cdot Z(g_i(d_i,e_i), g_j(d_j,e_j))~+$ \\
+& & $\sum_{i \in I_x, e_i: E_i} \sum_{j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow$ \\
+& & $\delta \at min(t_i(d_i,e_i), t_j(d_j,e_j)) \cdot Z(d_i,d_j)$ \\
+\end{tabular}
+\end{proofenv}
+
+\begin{proof}
+\begin{derivation}{$Z(d_i, d_j)$}
+\equ{definition $Z$}{$X(d_i) \parallel Y(d_j)$}
+\equ{M}{$X(d_i) \lmerge Y(d_j) + Y(d_j) \lmerge X(d_i) + X(d_i) \comm Y(d_j)$}
+\equ{Lemma \ref{lemma:xlmergey}}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j)) +$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) \geq t_j(d_j,e_j) \rightarrow$}
+\nxt{$\delta \at min(t_i(d_i,e_i),t_j(d_j,e_j)) \cdot (X(d_i) \parallel Y(d_j))~+$}
+\nxt{$Y(d_j) \lmerge X(d_i) + X(d_i) \comm Y(d_j)$}
+\equ{Lemma \ref{lemma:xlmergey}}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j)) +$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) \geq t_j(d_j,e_j) \rightarrow$}
+\nxt{$\delta \at min(t_i(d_i,e_i),t_j(d_j,e_j)) \cdot (X(d_i) \parallel Y(d_j))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_j(d_j,e_j) < t_i(d_i,e_i) \rightarrow$}
+\nxt{$\alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot (Y(g_j(d_j,e_j)) \parallel X(d_i))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_j(d_j,e_j) \geq t_i(d_i,e_i) \rightarrow$}
+\nxt{$\delta \at min(t_j(d_j,e_j),t_i(d_i,e_i)) \cdot (Y(d_j) \parallel X(d_i))~+$}
+\nxt{$X(d_i) \comm Y(d_j)$}
+\equ{Lemma \ref{lemma:xcommy}}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) \geq t_j(d_j,e_j) \rightarrow$}
+\nxt{$\delta \at min(t_i(d_i,e_i),t_j(d_j,e_j)) \cdot (X(d_i) \parallel Y(d_j))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_j(d_j,e_j) < t_i(d_i,e_i) \rightarrow$}
+\nxt{$\alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot (Y(g_j(d_j,e_j)) \parallel X(d_i))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_j(d_j,e_j) \geq t_i(d_i,e_i) \rightarrow$}
+\nxt{$\delta \at min(t_j(d_j,e_j),t_i(d_i,e_i)) \cdot (Y(d_j) \parallel X(d_i))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i} \sum_{j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) = t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \comm \alpha_j(d_j,e_j) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(g_j(d_j,e_j)))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i} \sum_{j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) \neq t_j(d_j,e_j) \rightarrow$}
+\nxt{$\delta \at min(t_i(d_i,e_i), t_j(d_j,e_j)) \cdot (X(d_i) \parallel Y(d_j))$}
+\equ{$t_i(d_i,e_j) \geq t_j(d_j,e_j) \lor t_j(d_j,e_j) \geq t_i(d_i,e_i) \lor t_i(d_i,e_i) \neq t_j(d_j,e_j) \equiv true$, Lemma \ref{lemma:parallelsym}}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(d_j))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_j(d_j,e_j) < t_i(d_i,e_i) \rightarrow$}
+\nxt{$\alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot (X(d_i) \parallel Y(g_j(d_j,e_j)))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i} \sum_{j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) = t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \comm \alpha_j(d_j,e_j) \at t_i(d_i,e_i) \cdot (X(g_i(d_i,e_i)) \parallel Y(g_j(d_j,e_j)))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i} \sum_{j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow$}
+\nxt{$\delta \at min(t_i(d_i,e_i), t_j(d_j,e_j)) \cdot (X(d_i) \parallel Y(d_j))$}
+\equ{definition $Z$}{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) < t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \at t_i(d_i,e_i) \cdot Z(g_i(d_i,e_i), d_j)~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i, j \in J_x, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_j(d_j,e_j) < t_i(d_i,e_i) \rightarrow$}
+\nxt{$\alpha_j(d_j,e_j) \at t_j(d_j,e_j) \cdot Z(d_i, g_j(d_j,e_j))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i} \sum_{j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \land t_i(d_i,e_i) = t_j(d_j,e_j) \rightarrow$}
+\nxt{$\alpha_i(d_i,e_i) \comm \alpha_j(d_j,e_j) \at t_i(d_i,e_i) \cdot Z(g_i(d_i,e_i), g_j(d_j,e_j))~+$}
+\nxt{$\sum_{i \in I_x, e_i: E_i} \sum_{j \in I_y, e_j: E_j} c_i(d_i,e_i) \land c_j(d_j,e_j) \rightarrow$}
+\nxt{$\delta \at min(t_i(d_i,e_i), t_j(d_j,e_j)) \cdot Z(d_i,d_j)$}
+\end{derivation}
+\end{proof}
+\\
+\begin{lemma} \label{lemma:alwaysdeltabefore} $\alpha \at t = \alpha \at t + \sum_{u:\TTT} u < t \rightarrow \delta \at u$ \end{lemma}
+
+\begin{proof}
+\begin{derivation}{$\alpha \at t$}
+\equ{T3}{$\sum_{u:\TTT} \alpha \at t \at u$}
+\equ{TA1}{$\sum_{u:\TTT} t = u \rightarrow \alpha \at t \diamond \delta \at min(t,u)$}
+\equ{$\sum_{u:\TTT} t \neq u \rightarrow \delta \at min(t,u) \equiv \sum_{u:\TTT} t < u \rightarrow \delta \at u$}{$\sum_{u:\TTT} t = u \rightarrow \alpha \at t \diamond u < t \rightarrow \delta \at u$}
+\equ{SUM1}{$\alpha \at t + \sum_{u:\TTT} u < t \rightarrow \delta \at u$}
+\end{derivation}
+\end{proof}
+
+\begin{proofenv}{Theorem \ref{thm:tlpe2dstlpe}}
+For any TLPE $X$, there exists a DS-TLPE $Y$ such that $X = Y$.
+\end{proofenv}
+
+\begin{proof}
+The theorem follows directly from Lemma \ref{lemma:alwaysdeltabefore}.
+\end{proof}
